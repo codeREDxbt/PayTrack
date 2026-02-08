@@ -116,6 +116,9 @@ export function Sidebar({ collapsed = false, onCollapse }: SidebarProps) {
                     <p className="text-xs text-[--color-text-muted]">
                         PAYTRACK v1.3
                     </p>
+                    <p className="text-[10px] text-[--color-text-muted]/70 mt-1">
+                        Made By codeRED
+                    </p>
                 </div>
             )}
         </aside>

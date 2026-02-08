@@ -334,7 +334,7 @@ export function Settings() {
                     <div className="flex items-center justify-between">
                         <div>
                             <h3 className="font-medium text-[--color-text-primary]">PAYTRACK</h3>
-                            <p className="text-sm text-[--color-text-muted]">v1.3</p>
+                            <p className="text-sm text-[--color-text-muted]">v1.3 • Made By codeRED</p>
                         </div>
                     </div>
                 </CardContent>
