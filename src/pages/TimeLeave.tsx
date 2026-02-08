@@ -443,8 +443,9 @@ export function TimeLeave() {
                             const canClick = item.day && selectedEmployeeId !== 'all' && !isFuture && !saving;
 
                             // For "All Employees" view, show dots for everyone
+                            const validEmployeeIds = new Set(employees.map(e => e.id));
                             const dayRecords = item.date && selectedEmployeeId === 'all'
-                                ? attendance.filter(r => r.date === item.date)
+                                ? attendance.filter(r => r.date === item.date && validEmployeeIds.has(r.employeeId))
                                 : [];
 
                             const record = item.date && selectedEmployeeId !== 'all'

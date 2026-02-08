@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Search, Bell, LogOut } from 'lucide-react';
-import { useTheme } from '../../contexts/ThemeContext';
 import { ThemeToggle } from '../ThemeToggle';
 import { cn } from '../../lib/utils';
 
