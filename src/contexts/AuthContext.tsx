@@ -1,9 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import {
-    signInWithRedirect,
+    signInWithPopup,
     signOut as firebaseSignOut,
     onAuthStateChanged,
-    getRedirectResult,
     type User,
 } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
@@ -41,18 +40,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Check for redirect result (mobile flow)
-        getRedirectResult(auth)
-            .then((result) => {
-                if (result?.user) {
-                    setUser(result.user);
-                }
-            })
-            .catch((err) => {
-                console.error('Redirect error:', err);
-                setError(err.message);
-            });
-
         // Listen for auth state changes
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setUser(user);
@@ -66,11 +53,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setError(null);
         setLoading(true);
         try {
-            // Use redirect for better mobile compatibility
-            await signInWithRedirect(auth, googleProvider);
-        } catch (err) {
+            // Use popup for better SPA compatibility
+            await signInWithPopup(auth, googleProvider);
+        } catch (err: unknown) {
             console.error('Sign in error:', err);
-            setError(err instanceof Error ? err.message : 'Failed to sign in');
+            const errorMessage = err instanceof Error ? err.message : 'Failed to sign in';
+            // Don't show error for popup closed by user
+            if (errorMessage.includes('popup-closed-by-user')) {
+                setLoading(false);
+                return;
+            }
+            setError(errorMessage);
             setLoading(false);
         }
     };
