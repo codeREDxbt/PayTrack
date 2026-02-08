@@ -27,7 +27,7 @@ import { formatDateReadable } from '../lib/utils';
 // Employee table with filtering
 // ================================
 
-// Mock departments
+// Department options for dropdown
 const departments = [
     { value: 'engineering', label: 'Engineering' },
     { value: 'sales', label: 'Sales' },
@@ -35,17 +35,6 @@ const departments = [
     { value: 'hr', label: 'HR' },
     { value: 'finance', label: 'Finance' },
     { value: 'operations', label: 'Operations' },
-];
-
-// Mock employees for demo
-const mockEmployees: Employee[] = [
-    { id: '1', name: 'Rahul Sharma', role: 'Senior Developer', department: 'Engineering', monthlyPay: 75000, joinDate: '2023-03-15', status: 'active', createdAt: '', updatedAt: '' },
-    { id: '2', name: 'Priya Patel', role: 'Marketing Manager', department: 'Marketing', monthlyPay: 85000, joinDate: '2022-08-01', status: 'active', createdAt: '', updatedAt: '' },
-    { id: '3', name: 'Amit Kumar', role: 'Sales Lead', department: 'Sales', monthlyPay: 70000, joinDate: '2023-01-10', status: 'active', createdAt: '', updatedAt: '' },
-    { id: '4', name: 'Sunita Gupta', role: 'HR Manager', department: 'HR', monthlyPay: 65000, joinDate: '2021-06-20', status: 'active', createdAt: '', updatedAt: '' },
-    { id: '5', name: 'Vikram Singh', role: 'Junior Developer', department: 'Engineering', monthlyPay: 45000, joinDate: '2024-01-05', status: 'active', createdAt: '', updatedAt: '' },
-    { id: '6', name: 'Neha Reddy', role: 'Finance Lead', department: 'Finance', monthlyPay: 80000, joinDate: '2022-11-15', status: 'active', createdAt: '', updatedAt: '' },
-    { id: '7', name: 'Karan Mehta', role: 'Operations Manager', department: 'Operations', monthlyPay: 72000, joinDate: '2023-05-08', status: 'inactive', createdAt: '', updatedAt: '' },
 ];
 
 export function People() {
@@ -60,8 +49,8 @@ export function People() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-    // Use mock data if no employees loaded
-    const displayEmployees = employees.length > 0 ? employees : mockEmployees;
+    // Sort employees by name client-side
+    const sortedEmployees = [...employees].sort((a, b) => a.name.localeCompare(b.name));
 
     // Build active filters for display
     const activeFilters = useMemo(() => {
@@ -85,14 +74,14 @@ export function People() {
 
     // Filter employees
     const filteredEmployees = useMemo(() => {
-        return displayEmployees.filter((emp) => {
+        return sortedEmployees.filter((emp) => {
             const matchesSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 emp.role.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesDepartment = !selectedDepartment || emp.department.toLowerCase() === selectedDepartment;
             const matchesStatus = !selectedStatus || emp.status === selectedStatus;
             return matchesSearch && matchesDepartment && matchesStatus;
         });
-    }, [displayEmployees, searchQuery, selectedDepartment, selectedStatus]);
+    }, [sortedEmployees, searchQuery, selectedDepartment, selectedStatus]);
 
     const handleRemoveFilter = (id: string) => {
         if (id === 'department') setSelectedDepartment('');
@@ -148,7 +137,7 @@ export function People() {
                         People
                     </h1>
                     <p className="text-[--color-text-secondary] mt-1">
-                        Manage your {displayEmployees.length} employees
+                        Manage your {sortedEmployees.length} employees
                     </p>
                 </div>
                 <Button variant="primary" size="sm" onClick={handleAddEmployee}>

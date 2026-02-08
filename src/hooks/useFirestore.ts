@@ -8,7 +8,6 @@ import {
     deleteDoc,
     query,
     where,
-    orderBy,
     Timestamp,
     type DocumentData,
 } from 'firebase/firestore';
@@ -98,8 +97,7 @@ export function useEmployees() {
 
         const q = query(
             collection(db, COLLECTIONS.EMPLOYEES),
-            where('userId', '==', user.uid),
-            orderBy('name')
+            where('userId', '==', user.uid)
         );
 
         const unsubscribe = onSnapshot(
