@@ -1,4 +1,5 @@
-import { TrendingUp } from 'lucide-react';
+import fullLogo from '../assets/logos/full logo.png';
+import iconLogo from '../assets/logos/paytrack logo.png';
 
 interface LogoProps {
     className?: string;
@@ -8,56 +9,37 @@ interface LogoProps {
 
 const sizes = {
     sm: {
-        icon: 'w-8 h-8',
-        iconSize: 'w-5 h-5',
-        text: 'text-lg',
-        gap: 'gap-2',
-        radius: 'rounded-lg'
+        height: 'h-8',
+        width: 'w-auto'
     },
     md: {
-        icon: 'w-10 h-10',
-        iconSize: 'w-6 h-6',
-        text: 'text-xl',
-        gap: 'gap-3',
-        radius: 'rounded-xl'
+        height: 'h-10',
+        width: 'w-auto'
     },
     lg: {
-        icon: 'w-12 h-12',
-        iconSize: 'w-7 h-7',
-        text: 'text-2xl',
-        gap: 'gap-3',
-        radius: 'rounded-2xl'
+        height: 'h-12',
+        width: 'w-auto'
     },
     xl: {
-        icon: 'w-16 h-16',
-        iconSize: 'w-9 h-9',
-        text: 'text-3xl',
-        gap: 'gap-4',
-        radius: 'rounded-3xl'
+        height: 'h-16',
+        width: 'w-auto'
     }
 };
 
 export function Logo({ className = '', showText = true, size = 'md' }: LogoProps) {
     const s = sizes[size];
 
-    return (
-        <div className={`flex items-center ${s.gap} ${className}`}>
-            {/* Icon */}
-            <div
-                className={`${s.icon} ${s.radius} flex items-center justify-center shadow-lg shadow-[--color-accent-gold]/20 flex-shrink-0`}
-                style={{ backgroundColor: '#D8B04C' }}
-            >
-                <TrendingUp className={`${s.iconSize} text-black stroke-[3]`} />
-            </div>
+    // Based on filenames:
+    // 'full logo.png' likely contains text
+    // 'paytrack logo.png' likely contains icon or main logo
+    // Using fullLogo when text is requested, and iconLogo when not
+    const logoSrc = showText ? fullLogo : iconLogo;
 
-            {/* Text */}
-            {showText && (
-                <div className="flex flex-col">
-                    <h1 className={`${s.text} font-semibold text-[--color-accent-gold] tracking-[0.25em] leading-none text-shadow-sm`}>
-                        PAYTRACK
-                    </h1>
-                </div>
-            )}
-        </div>
+    return (
+        <img
+            src={logoSrc}
+            alt="PayTrack Logo"
+            className={`${s.height} ${className} object-contain`}
+        />
     );
 }
