@@ -1,5 +1,5 @@
-import fullLogo from '../assets/logos/full logo.png';
-import iconLogo from '../assets/logos/paytrack logo.png';
+import fullLogo from '../assets/Logos/full logo.png';
+import iconLogo from '../assets/Logos/paytrack logo.png';
 
 interface LogoProps {
     className?: string;
