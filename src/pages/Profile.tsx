@@ -1,6 +1,8 @@
-import { User, Mail, LogOut, Shield } from 'lucide-react';
+import { useState } from 'react';
+import { User, Mail, LogOut, Shield, Edit2 } from 'lucide-react';
+import { updateProfile } from 'firebase/auth';
 import { useAuth } from '../contexts/AuthContext';
-import { Button, Card, CardHeader, CardTitle, CardContent } from '../components/ui';
+import { Button, Card, CardHeader, CardTitle, CardContent, Modal, Input } from '../components/ui';
 
 // ================================
 // Profile Page
@@ -9,12 +11,48 @@ import { Button, Card, CardHeader, CardTitle, CardContent } from '../components/
 
 export function Profile() {
     const { user, signOut } = useAuth();
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [formData, setFormData] = useState({
+        displayName: '',
+        photoURL: '',
+    });
 
     const handleSignOut = async () => {
         try {
             await signOut();
         } catch (error) {
             console.error('Sign out failed:', error);
+        }
+    };
+
+    const handleEditProfile = () => {
+        if (user) {
+            setFormData({
+                displayName: user.displayName || '',
+                photoURL: user.photoURL || '',
+            });
+            setIsEditModalOpen(true);
+        }
+    };
+
+    const handleSaveProfile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!user) return;
+
+        setIsSaving(true);
+        try {
+            await updateProfile(user, {
+                displayName: formData.displayName,
+                photoURL: formData.photoURL,
+            });
+            setIsEditModalOpen(false);
+            // Force refresh or let Firebase Auth state propagation handle it (it should trigger re-render)
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            alert('Failed to update profile. Please try again.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -56,16 +94,24 @@ export function Profile() {
 
                     {/* Info */}
                     <div className="flex-1">
-                        <h2 className="text-xl font-semibold text-[--color-text-primary]">
-                            {user.displayName || 'User'}
-                        </h2>
-                        <div className="flex items-center gap-2 mt-2 text-[--color-text-secondary]">
-                            <Mail className="w-4 h-4" />
-                            <span>{user.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-2 text-[--color-text-muted] text-sm">
-                            <Shield className="w-4 h-4" />
-                            <span>Signed in with Google</span>
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <h2 className="text-xl font-semibold text-[--color-text-primary]">
+                                    {user.displayName || 'User'}
+                                </h2>
+                                <div className="flex items-center gap-2 mt-2 text-[--color-text-secondary]">
+                                    <Mail className="w-4 h-4" />
+                                    <span>{user.email}</span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-2 text-[--color-text-muted] text-sm">
+                                    <Shield className="w-4 h-4" />
+                                    <span>Signed in with Google</span>
+                                </div>
+                            </div>
+                            <Button variant="secondary" size="sm" onClick={handleEditProfile}>
+                                <Edit2 className="w-4 h-4" />
+                                Edit
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -111,6 +157,37 @@ export function Profile() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+            {/* Edit Profile Modal */}
+
+            {/* Edit Profile Modal */}
+            <Modal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                title="Edit Profile"
+            >
+                <form onSubmit={handleSaveProfile} className="space-y-4">
+                    <Input
+                        label="Display Name"
+                        value={formData.displayName}
+                        onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                        required
+                    />
+                    <Input
+                        label="Photo URL"
+                        value={formData.photoURL}
+                        onChange={(e) => setFormData({ ...formData, photoURL: e.target.value })}
+                        placeholder="https://..."
+                    />
+                    <div className="flex gap-3 pt-4">
+                        <Button type="button" variant="secondary" className="flex-1" onClick={() => setIsEditModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" variant="primary" className="flex-1" disabled={isSaving}>
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
+        </div >
     );
 }

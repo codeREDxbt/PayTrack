@@ -10,6 +10,8 @@ import {
     where,
     Timestamp,
     type DocumentData,
+    getDocs,
+    writeBatch,
 } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -143,8 +145,40 @@ export function useEmployees() {
     };
 
     const deleteEmployee = async (id: string) => {
-        const docRef = doc(db, COLLECTIONS.EMPLOYEES, id);
-        await deleteDoc(docRef);
+        try {
+            // 1. Delete employee document
+            const docRef = doc(db, COLLECTIONS.EMPLOYEES, id);
+            await deleteDoc(docRef);
+
+            // 2. Delete related attendance records
+            const attendanceQ = query(
+                collection(db, COLLECTIONS.ATTENDANCE),
+                where('employeeId', '==', id)
+            );
+            const attendanceSnapshot = await getDocs(attendanceQ);
+            const batch = writeBatch(db);
+
+            attendanceSnapshot.docs.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+
+            // 3. Delete related payroll records
+            const payrollQ = query(
+                collection(db, COLLECTIONS.PAYROLL),
+                where('employeeId', '==', id)
+            );
+            const payrollSnapshot = await getDocs(payrollQ);
+
+            payrollSnapshot.docs.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+
+            // Commit all deletions
+            await batch.commit();
+        } catch (error) {
+            console.error("Error deleting employee data:", error);
+            throw error;
+        }
     };
 
     return { employees, loading, error, addEmployee, updateEmployee, deleteEmployee };

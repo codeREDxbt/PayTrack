@@ -135,6 +135,8 @@ export function People() {
         if (window.confirm(`Are you sure you want to delete ${employee.name}? This action cannot be undone.`)) {
             try {
                 await deleteEmployee(employee.id);
+                // Clear the selected employee ID from context to prevent stale data in Attendance page
+                setSelectedEmployeeId(null);
                 setIsDrawerOpen(false);
                 setSelectedEmployee(null);
             } catch (error) {

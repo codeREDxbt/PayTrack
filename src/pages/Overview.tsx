@@ -32,7 +32,14 @@ export function Overview() {
     // Calculate real stats from Firestore data
     const stats = useMemo(() => {
         const today = formatDate(new Date());
-        const todayAttendance = attendance.filter(r => r.date === today);
+        // Create a Set of valid employee IDs for fast lookup
+        const validEmployeeIds = new Set(employees.map(e => e.id));
+
+        // Filter attendance/payroll to only include existing employees
+        const validAttendance = attendance.filter(r => validEmployeeIds.has(r.employeeId));
+        const validPayroll = payroll.filter(p => validEmployeeIds.has(p.employeeId));
+
+        const todayAttendance = validAttendance.filter(r => r.date === today);
         const monthlyPay = employees.reduce((sum, emp) =>
             emp.status === 'active' ? sum + emp.monthlyPay : sum, 0
         );
@@ -43,7 +50,7 @@ export function Overview() {
             presentToday: todayAttendance.filter(r => r.status === 'present').length,
             absentToday: todayAttendance.filter(r => r.status === 'absent').length,
             onLeaveToday: todayAttendance.filter(r => r.status === 'leave').length,
-            pendingPayroll: payroll.filter(p => p.status === 'draft').length,
+            pendingPayroll: validPayroll.filter(p => p.status === 'draft').length,
             totalMonthlyPayout: monthlyPay,
         };
     }, [employees, attendance, payroll]);

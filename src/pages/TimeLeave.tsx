@@ -92,8 +92,11 @@ export function TimeLeave() {
 
     // Count attendance for stats
     const stats = useMemo(() => {
+        // Create a Set of valid employee IDs
+        const validEmployeeIds = new Set(employees.map(e => e.id));
+
         const monthAttendance = attendance.filter(
-            (record) => record.date.startsWith(currentMonth)
+            (record) => record.date.startsWith(currentMonth) && validEmployeeIds.has(record.employeeId)
         );
         return {
             present: monthAttendance.filter((r) => r.status === 'present').length,
@@ -102,7 +105,7 @@ export function TimeLeave() {
             halfDay: monthAttendance.filter((r) => r.status === 'half-day').length,
             overtime: monthAttendance.reduce((sum, r) => sum + (r.overtimeHours || 0), 0),
         };
-    }, [attendance, currentMonth]);
+    }, [attendance, employees, currentMonth]);
 
     // Navigate months
     const handlePrevMonth = () => {
