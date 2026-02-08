@@ -65,6 +65,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             root.style.setProperty('--color-text-inverse', '#F5F6F7');
             root.style.setProperty('--glass-bg', 'rgba(255, 255, 255, 0.85)');
             root.style.setProperty('--glass-border', 'rgba(0, 0, 0, 0.08)');
+
+            // Adjust accents for light mode contrast
+            root.style.setProperty('--color-accent-gold', '#B7860B'); // Darker gold for light mode
+            root.style.setProperty('--color-accent-gold-hover', '#D2691E');
+            root.style.setProperty('--color-text-inverse', '#FFFFFF'); // Ensure inverse text is white
         } else {
             // Reset to dark mode defaults
             root.style.setProperty('--color-bg-primary', '#0F0F10');
@@ -79,6 +84,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             root.style.setProperty('--color-text-inverse', '#0F0F10');
             root.style.setProperty('--glass-bg', 'rgba(22, 23, 26, 0.85)');
             root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.08)');
+
+            // Reset accents
+            root.style.setProperty('--color-accent-gold', '#D8B04C');
+            root.style.setProperty('--color-accent-gold-hover', '#E5C15F');
+            root.style.setProperty('--color-text-inverse', '#0F0F10');
         }
     }, [resolvedTheme]);
 

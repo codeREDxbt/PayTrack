@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
 import { Logo } from '../Logo';
+import { ThemeToggle } from '../ThemeToggle';
 import { cn } from '../../lib/utils';
 import { useBreakpoint } from '../../hooks/useResponsive';
 
@@ -51,7 +52,7 @@ export function AppShell({ children }: AppShellProps) {
                 <header className="fixed top-0 left-0 right-0 z-30 h-16 bg-[--color-bg-secondary] border-b border-[--color-border]">
                     <div className="flex items-center justify-between h-full px-4">
                         <Logo size="md" />
-                        {/* Theme toggle could go here */}
+                        <ThemeToggle />
                     </div>
                 </header>
             )}

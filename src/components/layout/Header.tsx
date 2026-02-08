@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Search, Sun, Moon, Bell, LogOut } from 'lucide-react';
+import { Search, Bell, LogOut } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { ThemeToggle } from '../ThemeToggle';
 import { cn } from '../../lib/utils';
 
 // ================================
@@ -13,16 +14,8 @@ interface HeaderProps {
 }
 
 export function Header({ sidebarCollapsed = false }: HeaderProps) {
-    const { setTheme, resolvedTheme } = useTheme();
+    const { resolvedTheme } = useTheme();
     const [searchQuery, setSearchQuery] = useState('');
-
-    const toggleTheme = () => {
-        if (resolvedTheme === 'dark') {
-            setTheme('light');
-        } else {
-            setTheme('dark');
-        }
-    };
 
     return (
         <header
@@ -78,24 +71,7 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
                 </button>
 
                 {/* Theme Toggle */}
-                <button
-                    onClick={toggleTheme}
-                    className="
-            p-2
-            rounded-[--radius-md]
-            text-[--color-text-muted]
-            hover:text-[--color-text-primary]
-            hover:bg-[--color-bg-tertiary]
-            transition-colors
-          "
-                    aria-label={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
-                >
-                    {resolvedTheme === 'dark' ? (
-                        <Sun className="w-5 h-5" />
-                    ) : (
-                        <Moon className="w-5 h-5" />
-                    )}
-                </button>
+                <ThemeToggle />
 
                 {/* User Menu */}
                 <div className="ml-2 pl-4 border-l border-[--color-border] flex items-center gap-3">
