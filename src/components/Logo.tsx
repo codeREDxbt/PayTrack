@@ -13,15 +13,15 @@ const sizes = {
         width: 'w-auto'
     },
     md: {
-        height: 'h-10',
+        height: 'h-12', // Was h-10
         width: 'w-auto'
     },
     lg: {
-        height: 'h-12',
+        height: 'h-16', // Was h-12
         width: 'w-auto'
     },
     xl: {
-        height: 'h-16',
+        height: 'h-24', // Was h-16
         width: 'w-auto'
     }
 };

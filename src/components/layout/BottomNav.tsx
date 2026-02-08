@@ -5,6 +5,7 @@ import {
     Calendar,
     Calculator,
     User,
+    Settings,
 } from 'lucide-react';
 
 // ================================
@@ -24,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
     { path: '/attendance', icon: Calendar, label: 'Time' },
     { path: '/payroll', icon: Calculator, label: 'Payroll' },
     { path: '/profile', icon: User, label: 'Profile' },
+    { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export function BottomNav() {
