@@ -19,7 +19,11 @@ export function generateId(): string {
  */
 export function formatDate(date: Date | string): string {
     const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toISOString().split('T')[0];
+    // Use local time instead of UTC to avoid timezone issues
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 /**
@@ -38,7 +42,10 @@ export function formatDateReadable(date: Date | string): string {
  * Get current month in YYYY-MM format
  */
 export function getCurrentMonth(): string {
-    return new Date().toISOString().slice(0, 7);
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
 }
 
 /**
