@@ -13,21 +13,11 @@ import { auth, googleProvider } from '../lib/firebase';
 // Firebase Google authentication
 // ================================
 
-// Demo user for testing (remove later)
-const DEMO_USER = {
-    uid: 'demo-user-123',
-    email: 'demo@paytrack.local',
-    displayName: 'Demo User',
-    photoURL: null,
-} as unknown as User;
-
 interface AuthContextType {
     user: User | null;
     loading: boolean;
     error: string | null;
-    isDemo: boolean;
     signInWithGoogle: () => Promise<void>;
-    signInDemo: () => void;
     signOut: () => Promise<void>;
 }
 
@@ -49,18 +39,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isDemo, setIsDemo] = useState(false);
 
     useEffect(() => {
-        // Check for demo session in localStorage
-        const demoSession = localStorage.getItem('paytrack_demo_session');
-        if (demoSession === 'true') {
-            setUser(DEMO_USER);
-            setIsDemo(true);
-            setLoading(false);
-            return;
-        }
-
         // Check for redirect result (mobile flow)
         getRedirectResult(auth)
             .then((result) => {
@@ -95,24 +75,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
     };
 
-    // Demo login (no Firebase required)
-    const signInDemo = () => {
-        localStorage.setItem('paytrack_demo_session', 'true');
-        setUser(DEMO_USER);
-        setIsDemo(true);
-        setLoading(false);
-    };
-
     const signOut = async () => {
         setError(null);
         try {
-            // Clear demo session
-            localStorage.removeItem('paytrack_demo_session');
-            setIsDemo(false);
-
-            if (!isDemo) {
-                await firebaseSignOut(auth);
-            }
+            await firebaseSignOut(auth);
             setUser(null);
         } catch (err) {
             console.error('Sign out error:', err);
@@ -124,9 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         user,
         loading,
         error,
-        isDemo,
         signInWithGoogle,
-        signInDemo,
         signOut,
     };
 

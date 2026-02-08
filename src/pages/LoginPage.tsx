@@ -8,7 +8,7 @@ import { Button } from '../components/ui';
 // ================================
 
 export function LoginPage() {
-    const { user, loading, error, signInWithGoogle, signInDemo } = useAuth();
+    const { user, loading, error, signInWithGoogle } = useAuth();
 
     // Redirect if already logged in
     if (user && !loading) {
@@ -44,33 +44,9 @@ export function LoginPage() {
                         </div>
                     )}
 
-                    {/* Demo Login Button - Temporary */}
-                    <Button
-                        variant="primary"
-                        className="w-full h-12 text-base font-medium mb-3"
-                        onClick={signInDemo}
-                    >
-                        <div className="flex items-center gap-3">
-                            <span>🚀</span>
-                            <span>Enter Demo Mode</span>
-                        </div>
-                    </Button>
-
-                    {/* Divider */}
-                    <div className="relative my-4">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-[--color-border]" />
-                        </div>
-                        <div className="relative flex justify-center">
-                            <span className="px-3 bg-[--color-bg-secondary] text-xs text-[--color-text-muted]">
-                                or sign in with
-                            </span>
-                        </div>
-                    </div>
-
                     {/* Google Sign In Button */}
                     <Button
-                        variant="secondary"
+                        variant="primary"
                         className="w-full h-12 text-base font-medium"
                         onClick={signInWithGoogle}
                         disabled={loading}
@@ -106,10 +82,22 @@ export function LoginPage() {
                         )}
                     </Button>
 
+                    {/* Divider */}
+                    <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-[--color-border]" />
+                        </div>
+                        <div className="relative flex justify-center">
+                            <span className="px-3 bg-[--color-bg-secondary] text-xs text-[--color-text-muted]">
+                                Secure sign-in
+                            </span>
+                        </div>
+                    </div>
+
                     {/* Info */}
-                    <p className="text-xs text-[--color-text-muted] text-center mt-6">
-                        Demo mode uses local storage.<br />
-                        Google sign-in syncs data to cloud.
+                    <p className="text-xs text-[--color-text-muted] text-center">
+                        Your data is stored securely in the cloud.<br />
+                        Access from any device with your Google account.
                     </p>
                 </div>
 
