@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
+import { Logo } from '../Logo';
 import { cn } from '../../lib/utils';
 import { useBreakpoint } from '../../hooks/useResponsive';
 
@@ -49,9 +50,7 @@ export function AppShell({ children }: AppShellProps) {
             {isMobile && (
                 <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-[--color-bg-secondary] border-b border-[--color-border]">
                     <div className="flex items-center justify-between h-full px-4">
-                        <h1 className="text-lg font-semibold text-[--color-accent-gold]">
-                            PayTrack
-                        </h1>
+                        <Logo size="md" />
                         {/* Theme toggle could go here */}
                     </div>
                 </header>

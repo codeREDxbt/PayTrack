@@ -53,7 +53,7 @@ export function Sidebar({ collapsed = false, onCollapse }: SidebarProps) {
             <div className="h-16 flex items-center justify-between px-4 border-b border-[--color-border]">
                 {!collapsed && (
                     <div className="px-2">
-                        <Logo size="md" />
+                        <Logo size="lg" />
                     </div>
                 )}
                 {onCollapse && (
