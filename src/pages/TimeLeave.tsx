@@ -8,30 +8,22 @@ import {
     Calendar as CalendarIcon,
     Clock,
     Users,
+    Loader2,
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { Button, Card, Select, MetricCard } from '../components/ui';
 import type { AttendanceRecord } from '../lib/types';
-import { getDaysInMonth, formatDate, generateId } from '../lib/utils';
+import { getDaysInMonth, formatDate } from '../lib/utils';
 
 // ================================
 // Time & Leave Page
-// Attendance calendar and leave management
+// Attendance calendar with Firestore sync
 // ================================
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
-];
-
-// Mock employees for demo
-const mockEmployees = [
-    { id: '1', name: 'Rahul Sharma' },
-    { id: '2', name: 'Priya Patel' },
-    { id: '3', name: 'Amit Kumar' },
-    { id: '4', name: 'Sunita Gupta' },
-    { id: '5', name: 'Vikram Singh' },
 ];
 
 type AttendanceStatus = 'present' | 'absent' | 'leave' | 'holiday' | 'half-day';
@@ -53,9 +45,19 @@ const statusIcons: Record<AttendanceStatus, React.ReactNode> = {
 };
 
 export function TimeLeave() {
-    const { attendance, setAttendance, currentMonth, setCurrentMonth } = useApp();
+    const {
+        employees,
+        attendance,
+        attendanceLoading,
+        markAttendance,
+        updateAttendance,
+        currentMonth,
+        setCurrentMonth
+    } = useApp();
+
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
     const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus>('present');
+    const [saving, setSaving] = useState(false);
 
     // Parse current month
     const [year, month] = currentMonth.split('-').map(Number);
@@ -113,58 +115,76 @@ export function TimeLeave() {
         setCurrentMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
     };
 
-    // Toggle attendance for a day
-    const handleDayClick = (date: string) => {
+    // Toggle attendance for a day (saves to Firestore)
+    const handleDayClick = async (date: string) => {
         if (!date || selectedEmployeeId === 'all') return;
 
-        const existingRecord = getAttendanceForDay(date, selectedEmployeeId);
+        setSaving(true);
+        try {
+            const existingRecord = getAttendanceForDay(date, selectedEmployeeId);
 
-        if (existingRecord) {
-            // Update existing record
-            setAttendance((prev) =>
-                prev.map((record) =>
-                    record.id === existingRecord.id
-                        ? { ...record, status: selectedStatus, updatedAt: new Date().toISOString() }
-                        : record
-                )
-            );
-        } else {
-            // Create new record
-            const newRecord: AttendanceRecord = {
-                id: generateId(),
-                employeeId: selectedEmployeeId,
-                date,
-                status: selectedStatus,
-                overtimeHours: 0,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
-            setAttendance((prev) => [...prev, newRecord]);
+            if (existingRecord) {
+                // Update existing record in Firestore
+                await updateAttendance(existingRecord.id, {
+                    status: selectedStatus
+                });
+            } else {
+                // Create new record in Firestore
+                await markAttendance({
+                    employeeId: selectedEmployeeId,
+                    date,
+                    status: selectedStatus,
+                    overtimeHours: 0,
+                });
+            }
+        } catch (error) {
+            console.error('Error saving attendance:', error);
+            alert('Failed to save attendance. Please try again.');
+        } finally {
+            setSaving(false);
         }
     };
 
-    // Bulk mark all present
-    const handleBulkMarkPresent = () => {
-        const today = formatDate(new Date());
-        const newRecords: AttendanceRecord[] = mockEmployees
-            .filter((emp) => !getAttendanceForDay(today, emp.id))
-            .map((emp) => ({
-                id: generateId(),
-                employeeId: emp.id,
-                date: today,
-                status: 'present' as const,
-                overtimeHours: 0,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            }));
+    // Bulk mark all present for today
+    const handleBulkMarkPresent = async () => {
+        if (employees.length === 0) {
+            alert('No employees found. Add employees first in the People page.');
+            return;
+        }
 
-        setAttendance((prev) => [...prev, ...newRecords]);
+        const today = formatDate(new Date());
+        setSaving(true);
+
+        try {
+            for (const emp of employees) {
+                const existing = getAttendanceForDay(today, emp.id);
+                if (!existing) {
+                    await markAttendance({
+                        employeeId: emp.id,
+                        date: today,
+                        status: 'present',
+                        overtimeHours: 0,
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error marking attendance:', error);
+            alert('Failed to mark attendance. Please try again.');
+        } finally {
+            setSaving(false);
+        }
     };
+
+    // Employee options for dropdown
+    const employeeOptions = [
+        { value: 'all', label: 'All Employees' },
+        ...employees.map((emp) => ({ value: emp.id, label: emp.name })),
+    ];
 
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-semibold text-[--color-text-primary]">
                         Time & Leave
@@ -173,8 +193,17 @@ export function TimeLeave() {
                         Track attendance, overtime, and leave
                     </p>
                 </div>
-                <Button variant="primary" size="sm" onClick={handleBulkMarkPresent}>
-                    <Users className="w-4 h-4" />
+                <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleBulkMarkPresent}
+                    disabled={saving || employees.length === 0}
+                >
+                    {saving ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                        <Users className="w-4 h-4" />
+                    )}
                     Mark All Present Today
                 </Button>
             </div>
@@ -210,41 +239,41 @@ export function TimeLeave() {
 
             {/* Calendar Controls */}
             <Card padding="md">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4">
+                {/* Controls - stack on mobile */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                         <Select
-                            options={[
-                                { value: 'all', label: 'All Employees' },
-                                ...mockEmployees.map((emp) => ({ value: emp.id, label: emp.name })),
-                            ]}
+                            options={employeeOptions}
                             value={selectedEmployeeId}
                             onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                            className="w-48"
+                            className="w-full sm:w-48"
                         />
-                        <div className="flex items-center gap-2 ml-4">
+
+                        {/* Status selector */}
+                        <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm text-[--color-text-muted]">Mark as:</span>
                             {(['present', 'absent', 'leave', 'half-day'] as AttendanceStatus[]).map((status) => (
                                 <button
                                     key={status}
                                     onClick={() => setSelectedStatus(status)}
                                     className={`
-                    flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                    transition-all
-                    ${selectedStatus === status
+                                        flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
+                                        transition-all min-h-[32px]
+                                        ${selectedStatus === status
                                             ? statusColors[status]
                                             : 'bg-[--color-bg-tertiary] text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
                                         }
-                  `}
+                                    `}
                                 >
                                     {statusIcons[status]}
-                                    <span className="capitalize">{status.replace('-', ' ')}</span>
+                                    <span className="capitalize hidden sm:inline">{status.replace('-', ' ')}</span>
                                 </button>
                             ))}
                         </div>
                     </div>
 
                     {/* Month Navigation */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center gap-3">
                         <button
                             onClick={handlePrevMonth}
                             className="p-2 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-text-primary] hover:bg-[--color-bg-tertiary] transition-colors"
@@ -252,7 +281,7 @@ export function TimeLeave() {
                         >
                             <ChevronLeft className="w-5 h-5" />
                         </button>
-                        <span className="text-lg font-medium text-[--color-text-primary] min-w-[160px] text-center">
+                        <span className="text-lg font-medium text-[--color-text-primary] min-w-[140px] text-center">
                             {MONTHS[month - 1]} {year}
                         </span>
                         <button
@@ -265,74 +294,88 @@ export function TimeLeave() {
                     </div>
                 </div>
 
-                {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-1">
-                    {/* Day headers */}
-                    {DAYS_OF_WEEK.map((day) => (
-                        <div
-                            key={day}
-                            className="h-10 flex items-center justify-center text-xs font-medium text-[--color-text-muted] uppercase"
-                        >
-                            {day}
-                        </div>
-                    ))}
+                {/* Loading state */}
+                {attendanceLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-[--color-accent-gold]" />
+                    </div>
+                ) : (
+                    <>
+                        {/* Info message if no employee selected */}
+                        {selectedEmployeeId === 'all' && (
+                            <div className="mb-4 p-3 bg-[--color-bg-tertiary] rounded-[--radius-md] text-sm text-[--color-text-secondary]">
+                                Select an employee to mark attendance. Calendar shows overview when "All Employees" is selected.
+                            </div>
+                        )}
 
-                    {/* Calendar days */}
-                    {calendarDays.map((item, idx) => {
-                        const record = item.date && selectedEmployeeId !== 'all'
-                            ? getAttendanceForDay(item.date, selectedEmployeeId)
-                            : null;
-                        const isToday = item.date === formatDate(new Date());
-                        const isFuture = item.date ? new Date(item.date) > new Date() : false;
+                        {/* Calendar Grid */}
+                        <div className="grid grid-cols-7 gap-1">
+                            {/* Day headers */}
+                            {DAYS_OF_WEEK.map((day) => (
+                                <div
+                                    key={day}
+                                    className="h-8 flex items-center justify-center text-xs font-medium text-[--color-text-muted] uppercase"
+                                >
+                                    {day}
+                                </div>
+                            ))}
 
-                        return (
-                            <button
-                                key={idx}
-                                onClick={() => item.date && handleDayClick(item.date)}
-                                disabled={!item.day || selectedEmployeeId === 'all' || isFuture}
-                                className={`
-                  h-12 flex flex-col items-center justify-center rounded-[--radius-md]
-                  transition-all
-                  ${!item.day ? 'cursor-default' : ''}
-                  ${item.day && selectedEmployeeId !== 'all' && !isFuture
-                                        ? 'cursor-pointer hover:bg-[--color-bg-elevated]'
-                                        : ''
-                                    }
-                  ${isToday ? 'ring-2 ring-[--color-accent-gold]' : ''}
-                  ${record ? statusColors[record.status] : 'bg-[--color-bg-tertiary]'}
-                  ${isFuture ? 'opacity-40' : ''}
-                  disabled:cursor-not-allowed
-                `}
-                            >
-                                {item.day && (
-                                    <>
-                                        <span className={`text-sm ${record ? '' : 'text-[--color-text-primary]'}`}>
-                                            {item.day}
-                                        </span>
-                                        {record && (
-                                            <span className="mt-0.5">
-                                                {statusIcons[record.status]}
-                                            </span>
+                            {/* Calendar days */}
+                            {calendarDays.map((item, idx) => {
+                                const record = item.date && selectedEmployeeId !== 'all'
+                                    ? getAttendanceForDay(item.date, selectedEmployeeId)
+                                    : null;
+                                const isToday = item.date === formatDate(new Date());
+                                const isFuture = item.date ? new Date(item.date) > new Date() : false;
+                                const canClick = item.day && selectedEmployeeId !== 'all' && !isFuture && !saving;
+
+                                return (
+                                    <button
+                                        key={idx}
+                                        onClick={() => canClick && handleDayClick(item.date)}
+                                        disabled={!canClick}
+                                        className={`
+                                            h-11 sm:h-12 flex flex-col items-center justify-center rounded-[--radius-md]
+                                            transition-all text-sm
+                                            ${!item.day ? 'cursor-default' : ''}
+                                            ${canClick ? 'cursor-pointer hover:ring-2 hover:ring-[--color-focus]' : ''}
+                                            ${isToday ? 'ring-2 ring-[--color-accent-gold]' : ''}
+                                            ${record ? statusColors[record.status] : item.day ? 'bg-[--color-bg-tertiary]' : ''}
+                                            ${isFuture ? 'opacity-40' : ''}
+                                            disabled:cursor-not-allowed
+                                        `}
+                                    >
+                                        {item.day && (
+                                            <>
+                                                <span className={record ? '' : 'text-[--color-text-primary]'}>
+                                                    {item.day}
+                                                </span>
+                                                {record && (
+                                                    <span className="mt-0.5 hidden sm:block">
+                                                        {statusIcons[record.status]}
+                                                    </span>
+                                                )}
+                                            </>
                                         )}
-                                    </>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {/* Legend */}
-                <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[--color-border]">
-                    <span className="text-xs text-[--color-text-muted]">Legend:</span>
-                    {Object.entries(statusColors).map(([status, color]) => (
-                        <div key={status} className="flex items-center gap-1.5">
-                            <div className={`w-3 h-3 rounded ${color}`} />
-                            <span className="text-xs text-[--color-text-secondary] capitalize">
-                                {status.replace('-', ' ')}
-                            </span>
+                                    </button>
+                                );
+                            })}
                         </div>
-                    ))}
-                </div>
+
+                        {/* Legend */}
+                        <div className="flex items-center gap-3 sm:gap-4 mt-4 pt-4 border-t border-[--color-border] flex-wrap">
+                            <span className="text-xs text-[--color-text-muted]">Legend:</span>
+                            {Object.entries(statusColors).map(([status, color]) => (
+                                <div key={status} className="flex items-center gap-1.5">
+                                    <div className={`w-3 h-3 rounded ${color}`} />
+                                    <span className="text-xs text-[--color-text-secondary] capitalize">
+                                        {status.replace('-', ' ')}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
             </Card>
         </div>
     );
