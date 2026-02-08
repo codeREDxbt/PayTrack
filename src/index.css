@@ -76,26 +76,26 @@
    ================================ */
 
 .light {
-  --color-bg-primary: #FAFAFA;
-  --color-bg-secondary: #FFFFFF;
-  --color-bg-tertiary: #F5F5F5;
-  --color-bg-elevated: #FFFFFF;
-  --color-border: #E5E5E5;
-  --color-border-subtle: #D4D4D4;
-  --color-text-primary: #0F0F10;
-  --color-text-secondary: #525252;
-  --color-text-muted: #737373;
-  --color-text-inverse: #FFFFFF;
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(0, 0, 0, 0.08);
+  --color-bg-primary: #FAFAFA !important;
+  --color-bg-secondary: #FFFFFF !important;
+  --color-bg-tertiary: #F5F5F5 !important;
+  --color-bg-elevated: #FFFFFF !important;
+  --color-border: #E5E5E5 !important;
+  --color-border-subtle: #D4D4D4 !important;
+  --color-text-primary: #0F0F10 !important;
+  --color-text-secondary: #525252 !important;
+  --color-text-muted: #737373 !important;
+  --color-text-inverse: #FFFFFF !important;
+  --glass-bg: rgba(255, 255, 255, 0.85) !important;
+  --glass-border: rgba(0, 0, 0, 0.08) !important;
 
   /* Status colors - darker for contrast */
-  --color-success: #16a34a;
-  --color-danger: #dc2626;
-  --color-warning: #ca8a04;
-  --color-accent-blue: #2563eb;
-  --color-accent-gold: #B7860B;
-  --color-accent-gold-hover: #D2691E;
+  --color-success: #16a34a !important;
+  --color-danger: #dc2626 !important;
+  --color-warning: #ca8a04 !important;
+  --color-accent-blue: #2563eb !important;
+  --color-accent-gold: #B7860B !important;
+  --color-accent-gold-hover: #D2691E !important;
 }
 
 /* ================================
