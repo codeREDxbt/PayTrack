@@ -452,11 +452,6 @@ export function TimeLeave() {
                                 ? getAttendanceForDay(item.date, selectedEmployeeId)
                                 : null;
 
-                            // DEBUG: Log records for today
-                            if (item.day === 8 && selectedEmployeeId !== 'all') {
-                                console.log(`[DEBUG] Date: ${item.date}, Employee: ${selectedEmployeeId}, Record:`, record, 'All Attendance:', attendance.filter(a => a.date === item.date));
-                            }
-
                             return (
                                 <button
                                     key={idx}
