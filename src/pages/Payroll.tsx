@@ -78,7 +78,7 @@ export function Payroll() {
                 basePay: Math.round(basePay),
                 overtimePay: Math.round(overtimePay),
                 deductions: Math.round(deductions),
-                netPay: Math.round(basePay + overtimePay - deductions),
+                netPay: Math.max(0, Math.round(basePay + overtimePay - deductions)),
                 status: existingEntry?.status || 'draft',
                 existingEntry,
             };
@@ -142,28 +142,75 @@ export function Payroll() {
         }
     };
 
-    // Export payroll as CSV
+    // Export payroll as XLS (HTML Table)
     const handleExport = () => {
-        const headers = ['Employee', 'Department', 'Days Worked', 'Half Days', 'Overtime Hrs', 'Base Pay', 'OT Pay', 'Deductions', 'Net Pay', 'Status'];
-        const rows = filteredPayroll.map((entry) => [
-            entry.employee.name,
-            entry.employee.department,
-            entry.daysWorked,
-            entry.halfDays,
-            entry.overtimeHours,
-            entry.basePay,
-            entry.overtimePay,
-            entry.deductions,
-            entry.netPay,
-            entry.status,
-        ]);
+        // Create an HTML table for XLS export
+        const tableContent = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+                <!--[if gte mso 9]>
+                <xml>
+                    <x:ExcelWorkbook>
+                        <x:ExcelWorksheets>
+                            <x:ExcelWorksheet>
+                                <x:Name>Payroll ${selectedMonth}</x:Name>
+                                <x:WorksheetOptions>
+                                    <x:DisplayGridlines/>
+                                </x:WorksheetOptions>
+                            </x:ExcelWorksheet>
+                        </x:ExcelWorksheets>
+                    </x:ExcelWorkbook>
+                </xml>
+                <![endif]-->
+                <style>
+                    th { font-weight: bold; background-color: #f0f0f0; border: 1px solid #ccc; }
+                    td { border: 1px solid #ccc; }
+                </style>
+            </head>
+            <body>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Role</th>
+                            <th>Days Worked</th>
+                            <th>Half Days</th>
+                            <th>Overtime Hrs</th>
+                            <th>Base Pay</th>
+                            <th>Overtime Pay</th>
+                            <th>Deductions</th>
+                            <th>Net Pay</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredPayroll.map(entry => `
+                            <tr>
+                                <td>${entry.employee.name}</td>
+                                <td>${entry.employee.department}</td>
+                                <td>${entry.employee.role}</td>
+                                <td>${entry.daysWorked}</td>
+                                <td>${entry.halfDays}</td>
+                                <td>${entry.overtimeHours}</td>
+                                <td>${entry.basePay}</td>
+                                <td>${entry.overtimePay}</td>
+                                <td>${entry.deductions}</td>
+                                <td>${entry.netPay}</td>
+                                <td>${entry.status}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `;
 
-        const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
+        const blob = new Blob([tableContent], { type: 'application/vnd.ms-excel' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `payroll-${selectedMonth}.csv`;
+        a.download = `payroll-${selectedMonth}.xls`;
         a.click();
         URL.revokeObjectURL(url);
     };
@@ -187,7 +234,7 @@ export function Payroll() {
                 <div className="flex items-center gap-3">
                     <Button variant="secondary" size="sm" onClick={handleExport}>
                         <Download className="w-4 h-4" />
-                        Export CSV
+                        Export XLS
                     </Button>
                     <Button variant="primary" size="sm" onClick={handleGeneratePayroll} disabled={generating}>
                         {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}

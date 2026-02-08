@@ -253,29 +253,29 @@ export function TimeLeave() {
                     <div className="space-y-4">
                         {/* Bulk Controls */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[--color-border]">
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
                                 <input
                                     type="date"
                                     value={bulkDate}
                                     onChange={(e) => setBulkDate(e.target.value)}
-                                    className="h-10 px-3 bg-[--color-bg-tertiary] border border-[--color-border] rounded-[--radius-md] text-[--color-text-primary]"
+                                    className="h-10 px-3 bg-[--color-bg-tertiary] border border-[--color-border] rounded-[--radius-md] text-[--color-text-primary] w-full sm:w-auto"
                                 />
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                     {(['present', 'absent', 'leave', 'half-day'] as AttendanceStatus[]).map((status) => (
                                         <button
                                             key={status}
                                             onClick={() => setSelectedStatus(status)}
                                             className={`
-                                                flex items-center gap-1 px-3 py-2 rounded-[--radius-md] text-sm font-medium
-                                                transition-all min-h-[40px]
+                                                flex items-center gap-1.5 px-3 py-2 rounded-[--radius-md] text-sm font-medium
+                                                transition-all min-h-[40px] flex-1 sm:flex-none justify-center
                                                 ${selectedStatus === status
-                                                    ? statusColors[status]
+                                                    ? `${statusColors[status]} ring-2 ring-offset-2 ring-offset-[--color-bg-primary] ring-white/40`
                                                     : 'bg-[--color-bg-tertiary] text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
                                                 }
                                             `}
                                         >
                                             {statusIcons[status]}
-                                            <span className="hidden sm:inline capitalize">{status.replace('-', ' ')}</span>
+                                            <span className="capitalize">{status.replace('-', ' ')}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -377,22 +377,22 @@ export function TimeLeave() {
                             />
 
                             <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm text-[--color-text-muted]">Mark as:</span>
+                                <span className="text-sm text-[--color-text-muted] w-full sm:w-auto">Mark as:</span>
                                 {(['present', 'absent', 'leave', 'half-day'] as AttendanceStatus[]).map((status) => (
                                     <button
                                         key={status}
                                         onClick={() => setSelectedStatus(status)}
                                         className={`
-                                            flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
-                                            transition-all min-h-[32px]
+                                            flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
+                                            transition-all min-h-[32px] flex-1 sm:flex-none justify-center
                                             ${selectedStatus === status
-                                                ? statusColors[status]
+                                                ? `${statusColors[status]} ring-2 ring-offset-2 ring-offset-[--color-bg-primary] ring-white/40`
                                                 : 'bg-[--color-bg-tertiary] text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
                                             }
                                         `}
                                     >
                                         {statusIcons[status]}
-                                        <span className="capitalize hidden sm:inline">{status.replace('-', ' ')}</span>
+                                        <span className="capitalize">{status.replace('-', ' ')}</span>
                                     </button>
                                 ))}
                             </div>

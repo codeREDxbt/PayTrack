@@ -5,6 +5,7 @@ import {
     Filter,
     Edit2,
     Eye,
+    Trash2,
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import {
@@ -38,7 +39,7 @@ const departments = [
 ];
 
 export function People() {
-    const { employees, addEmployee, updateEmployee } = useApp();
+    const { employees, addEmployee, updateEmployee, deleteEmployee } = useApp();
     const isMobile = useIsMobile();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('');
@@ -125,6 +126,19 @@ export function People() {
         } catch (error) {
             console.error('Error saving employee:', error);
             alert('Failed to save employee. Please try again.');
+        }
+    };
+
+    const handleDeleteEmployee = async (employee: Employee) => {
+        if (window.confirm(`Are you sure you want to delete ${employee.name}? This action cannot be undone.`)) {
+            try {
+                await deleteEmployee(employee.id);
+                setIsDrawerOpen(false);
+                setSelectedEmployee(null);
+            } catch (error) {
+                console.error('Error deleting employee:', error);
+                alert('Failed to delete employee. Please try again.');
+            }
         }
     };
 
@@ -311,6 +325,16 @@ export function People() {
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteEmployee(employee);
+                                                    }}
+                                                    className="p-1.5 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-danger] hover:bg-[--color-danger]/10 transition-colors"
+                                                    aria-label="Delete employee"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -386,6 +410,14 @@ export function People() {
                             </Button>
                             <Button variant="secondary" className="flex-1">
                                 View Attendance
+                            </Button>
+                            <Button
+                                variant="danger"
+                                className="flex-1"
+                                onClick={() => handleDeleteEmployee(selectedEmployee)}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
                             </Button>
                         </div>
                     </div>
