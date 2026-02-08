@@ -10,14 +10,22 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
-import { MetricCard, Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui';
+import { MetricCard, Card, CardHeader, CardTitle, CardContent, Button, Select } from '../components/ui';
 import { formatCurrency } from '../utils/salaryCalculator';
-import { formatDateReadable, formatDate } from '../lib/utils';
+import { formatDate } from '../lib/utils';
 
 // ================================
 // Overview Dashboard
 // Command center with real-time KPIs
 // ================================
+
+const MONTHS = [
+    { value: '2026-02', label: 'February 2026' },
+    { value: '2026-01', label: 'January 2026' },
+    { value: '2025-12', label: 'December 2025' },
+    { value: '2025-11', label: 'November 2025' },
+    { value: '2025-10', label: 'October 2025' },
+];
 
 export function Overview() {
     const {
@@ -25,7 +33,8 @@ export function Overview() {
         employeesLoading,
         attendance,
         payroll,
-        currentMonth
+        currentMonth,
+        setCurrentMonth
     } = useApp();
     const navigate = useNavigate();
 
@@ -64,10 +73,16 @@ export function Overview() {
                         Dashboard
                     </h1>
                     <p className="text-[--color-text-secondary] mt-1">
-                        Overview for {formatDateReadable(new Date(currentMonth + '-01'))}
+                        Overview for {new Date(currentMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <Select
+                        options={MONTHS}
+                        value={currentMonth}
+                        onChange={(e) => setCurrentMonth(e.target.value)}
+                        className="w-40"
+                    />
                     <Button variant="secondary" size="sm" onClick={() => navigate('/attendance')}>
                         <Calendar className="w-4 h-4" />
                         Mark Attendance

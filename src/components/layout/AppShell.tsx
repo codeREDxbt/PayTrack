@@ -48,7 +48,7 @@ export function AppShell({ children }: AppShellProps) {
 
             {/* Mobile: Simple header */}
             {isMobile && (
-                <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-[--color-bg-secondary] border-b border-[--color-border]">
+                <header className="fixed top-0 left-0 right-0 z-30 h-16 bg-[--color-bg-secondary] border-b border-[--color-border]">
                     <div className="flex items-center justify-between h-full px-4">
                         <Logo size="md" />
                         {/* Theme toggle could go here */}
@@ -60,8 +60,8 @@ export function AppShell({ children }: AppShellProps) {
                 id="main-content"
                 className={cn(
                     'min-h-screen transition-all duration-[--transition-normal]',
-                    // Mobile: no sidebar, header is 56px, bottom nav is 64px
-                    isMobile && 'pt-14 pb-20',
+                    // Mobile: no sidebar, header is 64px, bottom nav is 64px
+                    isMobile && 'pt-16 pb-20',
                     // Tablet: collapsed sidebar (64px), header is 64px
                     isTablet && 'pt-16 pl-16',
                     // Desktop: full sidebar (240px) or collapsed (64px)

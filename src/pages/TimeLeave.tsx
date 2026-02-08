@@ -90,6 +90,8 @@ export function TimeLeave() {
         );
     };
 
+    const getEmployeeName = (id: string) => employees.find(e => e.id === id)?.name || 'Unknown';
+
     // Count attendance for stats
     const stats = useMemo(() => {
         // Create a Set of valid employee IDs
@@ -270,10 +272,10 @@ export function TimeLeave() {
                                             onClick={() => setSelectedStatus(status)}
                                             className={`
                                                 flex items-center gap-1.5 px-3 py-2 rounded-[--radius-md] text-sm font-medium
-                                                transition-all min-h-[40px] flex-1 sm:flex-none justify-center
+                                                transition-all min-h-[40px] flex-1 sm:flex-none justify-center border-2
                                                 ${selectedStatus === status
-                                                    ? `${statusColors[status]} ring-2 ring-offset-2 ring-offset-[--color-bg-primary] ring-white/40`
-                                                    : 'bg-[--color-bg-tertiary] text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
+                                                    ? `${statusColors[status]} border-[--color-text-primary] shadow-md font-bold`
+                                                    : 'bg-[--color-bg-tertiary] border-transparent text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
                                                 }
                                             `}
                                         >
@@ -387,10 +389,10 @@ export function TimeLeave() {
                                         onClick={() => setSelectedStatus(status)}
                                         className={`
                                             flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                                            transition-all min-h-[32px] flex-1 sm:flex-none justify-center
+                                            transition-all min-h-[32px] flex-1 sm:flex-none justify-center border-2
                                             ${selectedStatus === status
-                                                ? `${statusColors[status]} ring-2 ring-offset-2 ring-offset-[--color-bg-primary] ring-white/40`
-                                                : 'bg-[--color-bg-tertiary] text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
+                                                ? `${statusColors[status]} border-[--color-text-primary] shadow-md font-bold`
+                                                : 'bg-[--color-bg-tertiary] border-transparent text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
                                             }
                                         `}
                                     >
@@ -436,33 +438,54 @@ export function TimeLeave() {
                         ))}
 
                         {calendarDays.map((item, idx) => {
-                            const record = item.date && selectedEmployeeId !== 'all'
-                                ? getAttendanceForDay(item.date, selectedEmployeeId)
-                                : null;
                             const isToday = item.date === formatDate(new Date());
                             const isFuture = item.date ? new Date(item.date) > new Date() : false;
                             const canClick = item.day && selectedEmployeeId !== 'all' && !isFuture && !saving;
+
+                            // For "All Employees" view, show dots for everyone
+                            const dayRecords = item.date && selectedEmployeeId === 'all'
+                                ? attendance.filter(r => r.date === item.date)
+                                : [];
+
+                            const record = item.date && selectedEmployeeId !== 'all'
+                                ? getAttendanceForDay(item.date, selectedEmployeeId)
+                                : null;
 
                             return (
                                 <button
                                     key={idx}
                                     onClick={() => canClick && handleDayClick(item.date)}
-                                    disabled={!canClick}
+                                    disabled={!canClick && selectedEmployeeId !== 'all'}
                                     className={`
-                                        h-11 sm:h-12 flex flex-col items-center justify-center rounded-[--radius-md]
-                                        transition-all text-sm
+                                        h-11 sm:h-14 flex flex-col items-center justify-start py-1 rounded-[--radius-md]
+                                        transition-all text-xs
                                         ${!item.day ? 'cursor-default' : ''}
                                         ${canClick ? 'cursor-pointer hover:ring-2 hover:ring-[--color-focus]' : ''}
-                                        ${isToday ? 'ring-2 ring-[--color-accent-gold]' : ''}
+                                        ${isToday ? 'ring-2 ring-[--color-accent-gold] z-10' : ''}
                                         ${record ? statusColors[record.status] : item.day ? 'bg-[--color-bg-tertiary]' : ''}
                                         ${isFuture ? 'opacity-40' : ''}
-                                        disabled:cursor-not-allowed
+                                        disabled:cursor-default
                                     `}
                                 >
                                     {item.day && (
-                                        <span className={record ? '' : 'text-[--color-text-primary]'}>
-                                            {item.day}
-                                        </span>
+                                        <>
+                                            <span className={`font-medium mb-0.5 ${record ? 'text-white' : 'text-[--color-text-primary]'}`}>
+                                                {item.day}
+                                            </span>
+
+                                            {/* Show dots for All Employees view */}
+                                            {selectedEmployeeId === 'all' && dayRecords.length > 0 && (
+                                                <div className="flex flex-wrap gap-0.5 justify-center px-1 w-full max-w-[90%]">
+                                                    {dayRecords.map((r, i) => (
+                                                        <div
+                                                            key={i}
+                                                            className={`w-1.5 h-1.5 rounded-full ${statusColors[r.status].split(' ')[0]}`} // Extract just the bg color class
+                                                            title={`${getEmployeeName ? getEmployeeName(r.employeeId) : 'Employee'}: ${r.status}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </button>
                             );

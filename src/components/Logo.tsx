@@ -13,15 +13,15 @@ const sizes = {
         width: 'w-auto'
     },
     md: {
-        height: 'h-12', // Was h-10
+        height: 'h-14', // Increased for better visibility
         width: 'w-auto'
     },
     lg: {
-        height: 'h-16', // Was h-12
+        height: 'h-20', // Significantly larger for sidebar
         width: 'w-auto'
     },
     xl: {
-        height: 'h-24', // Was h-16
+        height: 'h-32', // Login screen
         width: 'w-auto'
     }
 };

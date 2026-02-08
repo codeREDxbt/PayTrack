@@ -3,8 +3,6 @@ import {
     Calculator,
     Download,
     FileText,
-    Check,
-    Clock,
     Loader2,
     Users,
 } from 'lucide-react';
@@ -31,17 +29,29 @@ export function Payroll() {
         attendance,
         payroll,
         createPayrollEntry,
+        updatePayrollEntry,
         shiftConfig,
         currentMonth
     } = useApp();
+
     const [selectedMonth, setSelectedMonth] = useState(currentMonth);
     const [selectedDepartment, setSelectedDepartment] = useState('');
     const [generating, setGenerating] = useState(false);
     const [payslipEmployee, setPayslipEmployee] = useState<Employee | null>(null);
+    const [editingEntry, setEditingEntry] = useState<any>(null);
+    const [editForm, setEditForm] = useState({
+        overtimeHours: 0,
+        deductions: 0,
+    });
 
     // Calculate payroll from actual attendance data
     const calculatedPayroll = useMemo(() => {
         return employees.map((emp) => {
+            // Check if payroll entry exists
+            const existingEntry = payroll.find(
+                (p) => p.employeeId === emp.id && p.month === selectedMonth
+            );
+
             // Get attendance for this employee for selected month
             const empAttendance = attendance.filter(
                 (a) => a.employeeId === emp.id && a.date.startsWith(selectedMonth)
@@ -51,22 +61,23 @@ export function Payroll() {
             const halfDays = empAttendance.filter(a => a.status === 'half-day').length;
             const absentDays = empAttendance.filter(a => a.status === 'absent').length;
             const leaveDays = empAttendance.filter(a => a.status === 'leave').length;
-            const overtimeHours = empAttendance.reduce((sum, a) => sum + (a.overtimeHours || 0), 0);
 
-            // Calculate pay
+            // Base calculation
             const hourlyRate = emp.monthlyPay / (shiftConfig.workingDaysPerMonth * shiftConfig.hoursPerDay);
             const effectiveDays = presentDays + (halfDays * 0.5);
-            const basePay = effectiveDays * shiftConfig.hoursPerDay * hourlyRate;
-            const overtimePay = overtimeHours * hourlyRate * shiftConfig.overtimeMultiplier;
+            const calculatedBasePay = Math.round(effectiveDays * shiftConfig.hoursPerDay * hourlyRate);
 
-            // Deductions for absent days (if any attendance was marked)
+            // If existing entry, use its values for overrides
+            // Otherwise calculate from attendance
+            const overtimeHours = existingEntry ? existingEntry.overtimeHours : empAttendance.reduce((sum, a) => sum + (a.overtimeHours || 0), 0);
+            const calculatedOvertimePay = Math.round(overtimeHours * hourlyRate * shiftConfig.overtimeMultiplier);
+
+            // Deductions
             const totalMarkedDays = presentDays + halfDays + absentDays + leaveDays;
-            const deductions = totalMarkedDays > 0 ? absentDays * (emp.monthlyPay / shiftConfig.workingDaysPerMonth) : 0;
+            const defaultDeductions = totalMarkedDays > 0 ? absentDays * (emp.monthlyPay / shiftConfig.workingDaysPerMonth) : 0;
+            const deductions = existingEntry ? existingEntry.deductions : Math.round(defaultDeductions);
 
-            // Check if payroll entry exists
-            const existingEntry = payroll.find(
-                (p) => p.employeeId === emp.id && p.month === selectedMonth
-            );
+            const netPay = Math.max(0, Math.round(calculatedBasePay + calculatedOvertimePay - deductions));
 
             return {
                 employee: emp,
@@ -75,10 +86,10 @@ export function Payroll() {
                 absentDays,
                 leaveDays,
                 overtimeHours,
-                basePay: Math.round(basePay),
-                overtimePay: Math.round(overtimePay),
-                deductions: Math.round(deductions),
-                netPay: Math.max(0, Math.round(basePay + overtimePay - deductions)),
+                basePay: calculatedBasePay,
+                overtimePay: calculatedOvertimePay,
+                deductions,
+                netPay,
                 status: existingEntry?.status || 'draft',
                 existingEntry,
             };
@@ -101,8 +112,8 @@ export function Payroll() {
                 overtimePay: acc.overtimePay + entry.overtimePay,
                 deductions: acc.deductions + entry.deductions,
                 netPay: acc.netPay + entry.netPay,
-                pending: acc.pending + (entry.status === 'draft' ? 1 : 0),
-                approved: acc.approved + (entry.status === 'approved' ? 1 : 0),
+                pending: acc.pending + (entry.status !== 'paid' ? 1 : 0),
+                approved: acc.approved + (entry.status === 'paid' ? 1 : 0),
             }),
             { basePay: 0, overtimePay: 0, deductions: 0, netPay: 0, pending: 0, approved: 0 }
         );
@@ -139,6 +150,81 @@ export function Payroll() {
             alert('Failed to generate payroll. Please try again.');
         } finally {
             setGenerating(false);
+        }
+    };
+
+    // Update Status
+    const handleStatusChange = async (entry: any, newStatus: 'draft' | 'approved' | 'paid') => {
+        try {
+            if (entry.existingEntry) {
+                // Update existing
+                await updatePayrollEntry(entry.existingEntry.id, { status: newStatus });
+            } else {
+                // Create new with this status
+                await createPayrollEntry({
+                    employeeId: entry.employee.id,
+                    month: selectedMonth,
+                    daysWorked: entry.daysWorked,
+                    halfDays: entry.halfDays,
+                    overtimeHours: entry.overtimeHours,
+                    deductions: entry.deductions,
+                    basePay: entry.basePay,
+                    overtimePay: entry.overtimePay,
+                    netPay: entry.netPay,
+                    status: newStatus,
+                });
+            }
+        } catch (error) {
+            console.error('Error updating status:', error);
+        }
+    };
+
+    // Edit Payroll
+    const handleEditClick = (entry: any) => {
+        setEditingEntry(entry);
+        setEditForm({
+            overtimeHours: entry.overtimeHours,
+            deductions: entry.deductions,
+        });
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingEntry) return;
+
+        const { employee } = editingEntry;
+        const { overtimeHours, deductions } = editForm;
+
+        // Recalculate
+        const hourlyRate = employee.monthlyPay / (shiftConfig.workingDaysPerMonth * shiftConfig.hoursPerDay);
+        const overtimePay = Math.round(overtimeHours * hourlyRate * shiftConfig.overtimeMultiplier);
+        const netPay = Math.max(0, Math.round(editingEntry.basePay + overtimePay - deductions));
+
+        try {
+            if (editingEntry.existingEntry) {
+                await updatePayrollEntry(editingEntry.existingEntry.id, {
+                    overtimeHours,
+                    deductions,
+                    overtimePay,
+                    netPay,
+                });
+            } else {
+                await createPayrollEntry({
+                    employeeId: employee.id,
+                    month: selectedMonth,
+                    daysWorked: editingEntry.daysWorked,
+                    halfDays: editingEntry.halfDays,
+                    overtimeHours,
+                    deductions,
+                    basePay: editingEntry.basePay,
+                    overtimePay,
+                    netPay,
+                    status: 'draft',
+                });
+            }
+            setEditingEntry(null);
+        } catch (error) {
+            console.error('Error saving payroll edit:', error);
+            alert('Failed to save changes.');
         }
     };
 
@@ -353,19 +439,29 @@ export function Payroll() {
                                             <td className="px-4 py-3 text-right text-sm text-[--color-danger]">-{formatCurrency(entry.deductions)}</td>
                                             <td className="px-4 py-3 text-right text-sm font-semibold text-[--color-accent-gold]">{formatCurrency(entry.netPay)}</td>
                                             <td className="px-4 py-3 text-center">
-                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${entry.status === 'approved'
-                                                    ? 'bg-[--color-success]/10 text-[--color-success]'
-                                                    : 'bg-[--color-warning]/10 text-[--color-warning]'
-                                                    }`}>
-                                                    {entry.status === 'approved' ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                                    {entry.status === 'approved' ? 'Approved' : 'Pending'}
-                                                </span>
+                                                <select
+                                                    value={entry.status}
+                                                    onChange={(e) => handleStatusChange(entry, e.target.value as any)}
+                                                    className={`text-xs font-medium rounded-full px-2 py-1 border border-transparent focus:ring-1 focus:ring-[--color-accent-gold] outline-none ${entry.status === 'paid' ? 'bg-[--color-success]/10 text-[--color-success]' :
+                                                        entry.status === 'approved' ? 'bg-[--color-accent-blue]/10 text-[--color-accent-blue]' :
+                                                            'bg-[--color-warning]/10 text-[--color-warning]'
+                                                        }`}
+                                                >
+                                                    <option value="draft">Pending</option>
+                                                    <option value="approved">Approved</option>
+                                                    <option value="paid">Paid</option>
+                                                </select>
+                                                {/* Re-implementing correctly below */}
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <Button variant="ghost" size="sm" onClick={() => generatePayslip(entry.employee)}>
-                                                    <FileText className="w-4 h-4" />
-                                                    Payslip
-                                                </Button>
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="ghost" size="sm" onClick={() => handleEditClick(entry)}>
+                                                        Edit
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" onClick={() => generatePayslip(entry.employee)}>
+                                                        <FileText className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -455,6 +551,41 @@ export function Payroll() {
                         </div>
                     </div>
                 )}
+            </Modal>
+
+            {/* Edit Payroll Modal */}
+            <Modal
+                isOpen={!!editingEntry}
+                onClose={() => setEditingEntry(null)}
+                title="Edit Payroll"
+                size="md"
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-sm font-medium text-[--color-text-secondary]">Overtime Hours</label>
+                        <input
+                            type="number"
+                            value={editForm.overtimeHours}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, overtimeHours: Number(e.target.value) }))}
+                            className="w-full mt-1 p-2 rounded-md border border-[--color-border] bg-[--color-bg-tertiary] text-[--color-text-primary]"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm font-medium text-[--color-text-secondary]">Deductions ({formatCurrency(editingEntry?.deductions || 0)})</label>
+                        <input
+                            type="number"
+                            value={editForm.deductions}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, deductions: Number(e.target.value) }))}
+                            className="w-full mt-1 p-2 rounded-md border border-[--color-border] bg-[--color-bg-tertiary] text-[--color-text-primary]"
+                        />
+                        <p className="text-xs text-[--color-text-muted] mt-1">Override calculated deductions</p>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4">
+                        <Button variant="secondary" onClick={() => setEditingEntry(null)}>Cancel</Button>
+                        <Button variant="primary" onClick={handleSaveEdit}>Save Changes</Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );
