@@ -43,14 +43,14 @@ export function Logo({ className = '', showText = true, size = 'md' }: LogoProps
     return (
         <div className={`flex items-center ${s.gap} ${className}`}>
             {/* Icon */}
-            <div className={`${s.icon} ${s.radius} bg-gradient-to-br from-[--color-accent-gold] to-[--color-accent-gold-dark] flex items-center justify-center shadow-lg shadow-[--color-accent-gold]/20 flex-shrink-0`}>
+            <div className={`${s.icon} ${s.radius} bg-[--color-accent-gold] flex items-center justify-center shadow-lg shadow-[--color-accent-gold]/20 flex-shrink-0`}>
                 <TrendingUp className={`${s.iconSize} text-black stroke-[3]`} />
             </div>
 
             {/* Text */}
             {showText && (
                 <div className="flex flex-col">
-                    <h1 className={`${s.text} font-bold text-[--color-accent-gold] tracking-[0.2em] leading-none`}>
+                    <h1 className={`${s.text} font-semibold text-[--color-accent-gold] tracking-[0.25em] leading-none text-shadow-sm`}>
                         PAYTRACK
                     </h1>
                 </div>
