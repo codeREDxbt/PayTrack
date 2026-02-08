@@ -158,7 +158,7 @@ export function Overview() {
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <Button
                                         variant="secondary"
-                                        className="justify-center h-12"
+                                        className="justify-center h-auto py-3"
                                         onClick={() => navigate('/attendance')}
                                     >
                                         <Calendar className="w-4 h-4" />
@@ -166,7 +166,7 @@ export function Overview() {
                                     </Button>
                                     <Button
                                         variant="secondary"
-                                        className="justify-center h-12"
+                                        className="justify-center h-auto py-3"
                                         onClick={() => navigate('/payroll')}
                                     >
                                         <Wallet className="w-4 h-4" />
@@ -174,7 +174,7 @@ export function Overview() {
                                     </Button>
                                     <Button
                                         variant="secondary"
-                                        className="justify-center h-12"
+                                        className="justify-center h-auto py-3"
                                         onClick={() => navigate('/people')}
                                     >
                                         <Users className="w-4 h-4" />
