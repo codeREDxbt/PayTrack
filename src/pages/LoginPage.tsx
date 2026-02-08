@@ -103,7 +103,7 @@ export function LoginPage() {
 
                 {/* Footer */}
                 <p className="text-xs text-[--color-text-muted] text-center mt-6">
-                    © 2024 PayTrack • Employer Command Center
+                    © 2026 PayTrack • Employer Command Center
                 </p>
             </div>
         </div>
