@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+/* ================================
+   CRED-Inspired Design System
+   Mono Luxe Premium Dark Theme
+   ================================ */
+
+@theme {
+  /* Background Colors */
+  --color-bg-primary: #0F0F10;
+  --color-bg-secondary: #16171A;
+  --color-bg-tertiary: #1E2025;
+  --color-bg-elevated: #25272D;
+  
+  /* Border Colors */
+  --color-border: #2A2D34;
+  --color-border-subtle: #1E2025;
+  --color-border-focus: #6EE7FF;
+  
+  /* Text Colors */
+  --color-text-primary: #F5F6F7;
+  --color-text-secondary: #A9AFBC;
+  --color-text-muted: #6B7280;
+  --color-text-inverse: #0F0F10;
+  
+  /* Accent Colors - Restrained Use */
+  --color-accent-gold: #D8B04C;
+  --color-accent-gold-hover: #E5C15F;
+  --color-accent-blue: #4C7DFF;
+  --color-accent-blue-hover: #6B93FF;
+  
+  /* Status Colors */
+  --color-success: #34D399;
+  --color-success-muted: #065F46;
+  --color-warning: #FBBF24;
+  --color-warning-muted: #78350F;
+  --color-danger: #F87171;
+  --color-danger-muted: #7F1D1D;
+  
+  /* Focus Ring */
+  --color-focus: #6EE7FF;
+  
+  /* Glassmorphism (Modals/Drawers only) */
+  --glass-bg: rgba(22, 23, 26, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  
+  /* Spacing */
+  --spacing-page: 24px;
+  --spacing-section: 20px;
+  --spacing-card: 16px;
+  
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ================================
+   Base Styles
+   ================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+
+/* ================================
+   Focus States (Accessibility)
+   ================================ */
+
+*:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ================================
+   Reduced Motion Support
+   ================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ================================
+   Scrollbar Styling
+   ================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3A3D44;
+}
+
+/* ================================
+   Utility Classes
+   ================================ */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #D8B04C 0%, #F5D77A 50%, #D8B04C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Skip to content link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-accent-gold);
+  color: var(--color-text-inverse);
+  padding: 8px 16px;
+  z-index: 100;
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus {
+  top: 0;
+}
