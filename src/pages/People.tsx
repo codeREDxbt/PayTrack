@@ -20,7 +20,7 @@ import { EmployeeCard } from '../components/EmployeeCard';
 import { useIsMobile } from '../hooks/useResponsive';
 import type { Employee, EmployeeFormData, FilterPill } from '../lib/types';
 import { formatCurrency } from '../utils/salaryCalculator';
-import { formatDateReadable, generateId } from '../lib/utils';
+import { formatDateReadable } from '../lib/utils';
 
 // ================================
 // People Directory
@@ -49,7 +49,7 @@ const mockEmployees: Employee[] = [
 ];
 
 export function People() {
-    const { employees, setEmployees } = useApp();
+    const { employees, addEmployee, updateEmployee } = useApp();
     const isMobile = useIsMobile();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('');
@@ -120,28 +120,23 @@ export function People() {
         setIsModalOpen(true);
     };
 
-    const handleSaveEmployee = (data: EmployeeFormData) => {
-        if (editingEmployee) {
-            // Update existing
-            setEmployees(prev =>
-                prev.map(emp =>
-                    emp.id === editingEmployee.id
-                        ? { ...emp, ...data, updatedAt: new Date().toISOString() }
-                        : emp
-                )
-            );
-        } else {
-            // Add new
-            const newEmployee: Employee = {
-                id: generateId(),
-                ...data,
-                status: 'active',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
-            setEmployees(prev => [...prev, newEmployee]);
+    const handleSaveEmployee = async (data: EmployeeFormData) => {
+        try {
+            if (editingEmployee) {
+                // Update existing in Firestore
+                await updateEmployee(editingEmployee.id, data);
+            } else {
+                // Add new to Firestore
+                await addEmployee({
+                    ...data,
+                    status: 'active',
+                });
+            }
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error('Error saving employee:', error);
+            alert('Failed to save employee. Please try again.');
         }
-        setIsModalOpen(false);
     };
 
     return (

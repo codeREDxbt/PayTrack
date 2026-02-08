@@ -9,6 +9,7 @@ import {
     Calendar,
     DollarSign,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { MetricCard, Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui';
 import { formatCurrency } from '../utils/salaryCalculator';
@@ -41,6 +42,7 @@ const recentActivity = [
 
 export function Overview() {
     const { currentMonth } = useApp();
+    const navigate = useNavigate();
 
     return (
         <div className="space-y-6">
@@ -55,11 +57,11 @@ export function Overview() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button variant="secondary" size="sm">
+                    <Button variant="secondary" size="sm" onClick={() => navigate('/attendance')}>
                         <Calendar className="w-4 h-4" />
                         Mark Attendance
                     </Button>
-                    <Button variant="primary" size="sm">
+                    <Button variant="primary" size="sm" onClick={() => navigate('/people')}>
                         <Plus className="w-4 h-4" />
                         Add Employee
                     </Button>

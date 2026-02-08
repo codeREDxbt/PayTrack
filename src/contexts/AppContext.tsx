@@ -12,14 +12,14 @@ interface AppContextValue {
     // Employees (from Firestore)
     employees: Employee[];
     employeesLoading: boolean;
-    addEmployee: (employee: Omit<Employee, 'id'>) => Promise<string>;
+    addEmployee: (employee: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
     updateEmployee: (id: string, updates: Partial<Employee>) => Promise<void>;
     deleteEmployee: (id: string) => Promise<void>;
 
     // Attendance (from Firestore)
     attendance: AttendanceRecord[];
     attendanceLoading: boolean;
-    markAttendance: (record: Omit<AttendanceRecord, 'id'>) => Promise<void>;
+    markAttendance: (record: Omit<AttendanceRecord, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     updateAttendance: (id: string, updates: Partial<AttendanceRecord>) => Promise<void>;
 
     // Payroll (from Firestore)
