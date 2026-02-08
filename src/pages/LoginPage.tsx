@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui';
 
@@ -9,11 +9,22 @@ import { Button } from '../components/ui';
 
 export function LoginPage() {
     const { user, loading, error, signInWithGoogle } = useAuth();
+    const navigate = useNavigate();
 
     // Redirect if already logged in
     if (user && !loading) {
         return <Navigate to="/" replace />;
     }
+
+    const handleSignIn = async () => {
+        try {
+            await signInWithGoogle();
+            // After successful sign-in, navigate to home
+            navigate('/', { replace: true });
+        } catch (err) {
+            console.error('Sign in failed:', err);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[--color-bg-primary] flex items-center justify-center p-4">
@@ -48,7 +59,7 @@ export function LoginPage() {
                     <Button
                         variant="primary"
                         className="w-full h-12 text-base font-medium"
-                        onClick={signInWithGoogle}
+                        onClick={handleSignIn}
                         disabled={loading}
                     >
                         {loading ? (
