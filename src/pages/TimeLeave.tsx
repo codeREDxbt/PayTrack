@@ -275,7 +275,7 @@ export function TimeLeave() {
                                                 transition-all min-h-[40px] flex-1 sm:flex-none justify-center border-2
                                                 ${selectedStatus === status
                                                     ? `${statusColors[status]} border-[--color-text-primary] shadow-md font-bold`
-                                                    : 'bg-[--color-bg-tertiary] border-transparent text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
+                                                    : 'bg-[--color-bg-tertiary] border-[--color-border] text-[--color-text-muted] hover:bg-[--color-bg-elevated] hover:border-[--color-border-subtle]'
                                                 }
                                             `}
                                         >
@@ -392,7 +392,7 @@ export function TimeLeave() {
                                             transition-all min-h-[32px] flex-1 sm:flex-none justify-center border-2
                                             ${selectedStatus === status
                                                 ? `${statusColors[status]} border-[--color-text-primary] shadow-md font-bold`
-                                                : 'bg-[--color-bg-tertiary] border-transparent text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
+                                                : 'bg-[--color-bg-tertiary] border-[--color-border] text-[--color-text-muted] hover:bg-[--color-bg-elevated] hover:border-[--color-border-subtle]'
                                             }
                                         `}
                                     >
@@ -451,6 +451,11 @@ export function TimeLeave() {
                             const record = item.date && selectedEmployeeId !== 'all'
                                 ? getAttendanceForDay(item.date, selectedEmployeeId)
                                 : null;
+
+                            // DEBUG: Log records for today
+                            if (item.day === 8 && selectedEmployeeId !== 'all') {
+                                console.log(`[DEBUG] Date: ${item.date}, Employee: ${selectedEmployeeId}, Record:`, record, 'All Attendance:', attendance.filter(a => a.date === item.date));
+                            }
 
                             return (
                                 <button
