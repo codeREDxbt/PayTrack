@@ -1,6 +1,7 @@
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui';
+import { Logo } from '../components/Logo';
 
 // ================================
 // Login Page
@@ -30,15 +31,10 @@ export function LoginPage() {
         <div className="min-h-screen bg-[--color-bg-primary] flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 {/* Logo & Branding */}
-                <div className="text-center mb-8">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[--color-accent-gold] to-[--color-accent-gold-dark] flex items-center justify-center shadow-lg">
-                        <span className="text-2xl font-bold text-[--color-bg-primary]">P</span>
-                    </div>
-                    <h1 className="text-3xl font-bold text-gradient-gold">
-                        PayTrack
-                    </h1>
-                    <p className="text-[--color-text-secondary] mt-2">
-                        Salary Tracker Command Center
+                <div className="flex flex-col items-center mb-8">
+                    <Logo size="xl" />
+                    <p className="text-[--color-text-secondary] mt-4 tracking-wide font-medium">
+                        EMPLOYER COMMAND CENTER
                     </p>
                 </div>
 

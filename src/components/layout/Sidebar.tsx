@@ -8,6 +8,7 @@ import {
     ChevronLeft,
     ChevronRight,
 } from 'lucide-react';
+import { Logo } from '../Logo';
 import { cn } from '../../lib/utils';
 
 // ================================
@@ -51,9 +52,9 @@ export function Sidebar({ collapsed = false, onCollapse }: SidebarProps) {
             {/* Logo Area */}
             <div className="h-16 flex items-center justify-between px-4 border-b border-[--color-border]">
                 {!collapsed && (
-                    <h1 className="text-lg font-semibold text-gradient-gold">
-                        PayTrack
-                    </h1>
+                    <div className="px-2">
+                        <Logo size="md" />
+                    </div>
                 )}
                 {onCollapse && (
                     <button
