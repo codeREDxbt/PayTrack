@@ -14,7 +14,6 @@ interface HeaderProps {
 }
 
 export function Header({ sidebarCollapsed = false }: HeaderProps) {
-    const { resolvedTheme } = useTheme();
     const [searchQuery, setSearchQuery] = useState('');
 
     return (

@@ -70,6 +70,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             root.style.setProperty('--color-accent-gold', '#B7860B'); // Darker gold for light mode
             root.style.setProperty('--color-accent-gold-hover', '#D2691E');
             root.style.setProperty('--color-text-inverse', '#FFFFFF'); // Ensure inverse text is white
+
+            // Adjust status colors for better contrast with white text
+            root.style.setProperty('--color-success', '#16a34a'); // darker green
+            root.style.setProperty('--color-danger', '#dc2626'); // darker red
+            root.style.setProperty('--color-warning', '#ca8a04'); // darker yellow/amber
+            root.style.setProperty('--color-accent-blue', '#2563eb'); // darker blue
         } else {
             // Reset to dark mode defaults
             root.style.setProperty('--color-bg-primary', '#0F0F10');
@@ -89,6 +95,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             root.style.setProperty('--color-accent-gold', '#D8B04C');
             root.style.setProperty('--color-accent-gold-hover', '#E5C15F');
             root.style.setProperty('--color-text-inverse', '#0F0F10');
+
+            // Reset status colors
+            root.style.setProperty('--color-success', '#34D399');
+            root.style.setProperty('--color-danger', '#F87171');
+            root.style.setProperty('--color-warning', '#FBBF24');
+            root.style.setProperty('--color-accent-blue', '#4C7DFF');
         }
     }, [resolvedTheme]);
 
