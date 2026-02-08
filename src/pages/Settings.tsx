@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
     Save,
-    RefreshCw,
     Download,
     Upload,
     Sun,
     Moon,
     Monitor,
+    Loader2,
+    AlertTriangle,
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useApp } from '../contexts/AppContext';
@@ -14,34 +15,121 @@ import { Button, Card, CardHeader, CardTitle, CardContent, Input, Select } from 
 
 // ================================
 // Settings Page
-// App configuration
+// App configuration with import/export
 // ================================
 
 export function Settings() {
     const { theme, setTheme } = useTheme();
-    const { shiftConfig, setShiftConfig, settings, setSettings } = useApp();
+    const {
+        shiftConfig, setShiftConfig,
+        settings, setSettings,
+        employees,
+        attendance,
+        payroll,
+        addEmployee,
+        markAttendance,
+    } = useApp();
 
     const [localShiftConfig, setLocalShiftConfig] = useState(shiftConfig);
     const [localSettings, setLocalSettings] = useState(settings);
     const [isSaving, setIsSaving] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSave = async () => {
         setIsSaving(true);
-        // Simulate save delay
         await new Promise((resolve) => setTimeout(resolve, 500));
         setShiftConfig(localShiftConfig);
         setSettings(localSettings);
         setIsSaving(false);
     };
 
-    const handleExport = () => {
-        // Placeholder for data export
-        console.log('Exporting data...');
+    const handleExport = async () => {
+        setIsExporting(true);
+        try {
+            const data = {
+                exportDate: new Date().toISOString(),
+                version: '1.0.0',
+                employees: employees,
+                attendance: attendance,
+                payroll: payroll,
+                settings: localSettings,
+                shiftConfig: localShiftConfig,
+            };
+
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `paytrack-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Export failed. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
-    const handleImport = () => {
-        // Placeholder for data import
-        console.log('Importing data...');
+    const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsImporting(true);
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            // Validate data structure
+            if (!data.employees || !Array.isArray(data.employees)) {
+                throw new Error('Invalid backup file: missing employees data');
+            }
+
+            // Confirm import
+            const confirmed = window.confirm(
+                `This will import ${data.employees.length} employees, ${data.attendance?.length || 0} attendance records, and ${data.payroll?.length || 0} payroll entries. Continue?`
+            );
+
+            if (!confirmed) {
+                setIsImporting(false);
+                return;
+            }
+
+            // Import employees
+            for (const emp of data.employees) {
+                const { id, createdAt, updatedAt, ...employeeData } = emp;
+                await addEmployee(employeeData);
+            }
+
+            // Import attendance
+            if (data.attendance) {
+                for (const record of data.attendance) {
+                    const { id, createdAt, updatedAt, ...attendanceData } = record;
+                    await markAttendance(attendanceData);
+                }
+            }
+
+            // Import settings
+            if (data.settings) {
+                setSettings(data.settings);
+            }
+            if (data.shiftConfig) {
+                setShiftConfig(data.shiftConfig);
+            }
+
+            alert('Import completed successfully!');
+        } catch (error) {
+            console.error('Import failed:', error);
+            alert(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setIsImporting(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
     };
 
     return (
@@ -84,14 +172,14 @@ export function Settings() {
                                         key={option.value}
                                         onClick={() => setTheme(option.value as typeof theme)}
                                         className={`
-                      flex items-center gap-2 px-4 py-2.5
-                      rounded-[--radius-md] border
-                      transition-all
-                      ${theme === option.value
+                                            flex items-center gap-2 px-4 py-2.5
+                                            rounded-[--radius-md] border
+                                            transition-all
+                                            ${theme === option.value
                                                 ? 'border-[--color-accent-gold] bg-[--color-accent-gold]/10 text-[--color-accent-gold]'
                                                 : 'border-[--color-border] text-[--color-text-secondary] hover:border-[--color-border-subtle] hover:bg-[--color-bg-tertiary]'
                                             }
-                    `}
+                                        `}
                                     >
                                         <Icon className="w-4 h-4" />
                                         <span className="text-sm font-medium">{option.label}</span>
@@ -149,7 +237,6 @@ export function Settings() {
                         hint="Overtime pay rate (e.g., 1 = regular rate, 1.5 = time and a half)"
                     />
 
-                    {/* Formula Preview */}
                     <div className="mt-4 p-4 bg-[--color-bg-tertiary] rounded-[--radius-lg]">
                         <p className="text-sm text-[--color-text-muted] mb-2">Hourly Rate Formula:</p>
                         <p className="text-sm font-mono text-[--color-text-primary]">
@@ -209,21 +296,33 @@ export function Settings() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <p className="text-sm text-[--color-text-secondary]">
-                        Backup your data or restore from a previous backup.
+                        Backup your data or restore from a previous backup. Export includes all employees, attendance, and payroll records.
                     </p>
                     <div className="flex gap-3">
-                        <Button variant="secondary" onClick={handleExport}>
-                            <Download className="w-4 h-4" />
+                        <Button variant="secondary" onClick={handleExport} disabled={isExporting}>
+                            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                             Export Data
                         </Button>
-                        <Button variant="secondary" onClick={handleImport}>
-                            <Upload className="w-4 h-4" />
+                        <Button
+                            variant="secondary"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isImporting}
+                        >
+                            {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                             Import Data
                         </Button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".json"
+                            onChange={handleImport}
+                            className="hidden"
+                        />
                     </div>
-                    <div className="mt-4 p-4 bg-[--color-warning-muted]/20 border border-[--color-warning]/30 rounded-[--radius-lg]">
+                    <div className="mt-4 p-4 bg-[--color-warning]/10 border border-[--color-warning]/30 rounded-[--radius-lg] flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-[--color-warning] flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-[--color-warning]">
-                            ⚠️ Importing data will overwrite existing data. Make sure to backup first.
+                            Importing data will add new records to your existing data. Make sure to backup first if needed.
                         </p>
                     </div>
                 </CardContent>
@@ -234,13 +333,9 @@ export function Settings() {
                 <CardContent>
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="font-medium text-[--color-text-primary]">Salary Tracker</h3>
+                            <h3 className="font-medium text-[--color-text-primary]">PayTrack</h3>
                             <p className="text-sm text-[--color-text-muted]">Version 1.0.0</p>
                         </div>
-                        <Button variant="ghost" size="sm">
-                            <RefreshCw className="w-4 h-4" />
-                            Check for Updates
-                        </Button>
                     </div>
                 </CardContent>
             </Card>

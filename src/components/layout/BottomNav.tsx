@@ -4,7 +4,7 @@ import {
     Users,
     Calendar,
     Calculator,
-    Settings,
+    User,
 } from 'lucide-react';
 
 // ================================
@@ -23,7 +23,7 @@ const NAV_ITEMS: NavItem[] = [
     { path: '/people', icon: Users, label: 'People' },
     { path: '/attendance', icon: Calendar, label: 'Time' },
     { path: '/payroll', icon: Calculator, label: 'Payroll' },
-    { path: '/settings', icon: Settings, label: 'Settings' },
+    { path: '/profile', icon: User, label: 'Profile' },
 ];
 
 export function BottomNav() {

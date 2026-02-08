@@ -57,12 +57,16 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
                         {...props}
                     >
                         {placeholder && (
-                            <option value="" disabled>
+                            <option value="" disabled style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}>
                                 {placeholder}
                             </option>
                         )}
                         {options.map((option) => (
-                            <option key={option.value} value={option.value}>
+                            <option
+                                key={option.value}
+                                value={option.value}
+                                style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
+                            >
                                 {option.label}
                             </option>
                         ))}

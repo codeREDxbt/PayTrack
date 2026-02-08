@@ -5,57 +5,18 @@ import {
     FileText,
     Check,
     Clock,
+    Loader2,
+    Users,
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
-import { Button, Card, Select, MetricCard } from '../components/ui';
-import { formatCurrency, getDefaultShiftConfig } from '../utils/salaryCalculator';
-import type { Employee, PayrollEntry } from '../lib/types';
-import { generateId } from '../lib/utils';
+import { Button, Card, Select, MetricCard, Modal } from '../components/ui';
+import { formatCurrency } from '../utils/salaryCalculator';
+import type { Employee } from '../lib/types';
 
 // ================================
 // Payroll Page
-// Salary calculation and payslips
+// Real salary calculation from attendance
 // ================================
-
-// Mock employees for demo
-const mockEmployees: Employee[] = [
-    { id: '1', name: 'Rahul Sharma', role: 'Senior Developer', department: 'Engineering', monthlyPay: 75000, joinDate: '2023-03-15', status: 'active', createdAt: '', updatedAt: '' },
-    { id: '2', name: 'Priya Patel', role: 'Marketing Manager', department: 'Marketing', monthlyPay: 85000, joinDate: '2022-08-01', status: 'active', createdAt: '', updatedAt: '' },
-    { id: '3', name: 'Amit Kumar', role: 'Sales Lead', department: 'Sales', monthlyPay: 70000, joinDate: '2023-01-10', status: 'active', createdAt: '', updatedAt: '' },
-    { id: '4', name: 'Sunita Gupta', role: 'HR Manager', department: 'HR', monthlyPay: 65000, joinDate: '2021-06-20', status: 'active', createdAt: '', updatedAt: '' },
-    { id: '5', name: 'Vikram Singh', role: 'Junior Developer', department: 'Engineering', monthlyPay: 45000, joinDate: '2024-01-05', status: 'active', createdAt: '', updatedAt: '' },
-];
-
-// Generate mock payroll data
-const generateMockPayroll = (employees: Employee[], month: string): PayrollEntry[] => {
-    return employees.map((emp) => {
-        const daysWorked = Math.floor(Math.random() * 5) + 26;
-        const halfDays = Math.floor(Math.random() * 2);
-        const overtimeHours = Math.floor(Math.random() * 15);
-        const shiftConfig = getDefaultShiftConfig();
-
-        const hourlyRate = emp.monthlyPay / (shiftConfig.workingDaysPerMonth * shiftConfig.hoursPerDay);
-        const effectiveDays = daysWorked + (halfDays * 0.5);
-        const basePay = effectiveDays * shiftConfig.hoursPerDay * hourlyRate;
-        const overtimePay = overtimeHours * hourlyRate * shiftConfig.overtimeMultiplier;
-        const deductions = Math.floor(Math.random() * 2000);
-
-        return {
-            id: generateId(),
-            employeeId: emp.id,
-            month,
-            daysWorked,
-            halfDays,
-            overtimeHours,
-            deductions,
-            basePay: Math.round(basePay),
-            overtimePay: Math.round(overtimePay),
-            netPay: Math.round(basePay + overtimePay - deductions),
-            status: Math.random() > 0.3 ? 'approved' : 'draft',
-            generatedAt: new Date().toISOString(),
-        };
-    });
-};
 
 const MONTHS = [
     { value: '2026-02', label: 'February 2026' },
@@ -64,24 +25,75 @@ const MONTHS = [
 ];
 
 export function Payroll() {
-    const { employees, shiftConfig, currentMonth } = useApp();
+    const {
+        employees,
+        employeesLoading,
+        attendance,
+        payroll,
+        createPayrollEntry,
+        shiftConfig,
+        currentMonth
+    } = useApp();
     const [selectedMonth, setSelectedMonth] = useState(currentMonth);
     const [selectedDepartment, setSelectedDepartment] = useState('');
+    const [generating, setGenerating] = useState(false);
+    const [payslipEmployee, setPayslipEmployee] = useState<Employee | null>(null);
 
-    const displayEmployees = employees.length > 0 ? employees : mockEmployees;
+    // Calculate payroll from actual attendance data
+    const calculatedPayroll = useMemo(() => {
+        return employees.map((emp) => {
+            // Get attendance for this employee for selected month
+            const empAttendance = attendance.filter(
+                (a) => a.employeeId === emp.id && a.date.startsWith(selectedMonth)
+            );
 
-    const payrollData = useMemo(() => {
-        return generateMockPayroll(displayEmployees, selectedMonth);
-    }, [displayEmployees, selectedMonth]);
+            const presentDays = empAttendance.filter(a => a.status === 'present').length;
+            const halfDays = empAttendance.filter(a => a.status === 'half-day').length;
+            const absentDays = empAttendance.filter(a => a.status === 'absent').length;
+            const leaveDays = empAttendance.filter(a => a.status === 'leave').length;
+            const overtimeHours = empAttendance.reduce((sum, a) => sum + (a.overtimeHours || 0), 0);
 
-    const filteredPayroll = useMemo(() => {
-        if (!selectedDepartment) return payrollData;
-        return payrollData.filter((entry) => {
-            const emp = displayEmployees.find((e) => e.id === entry.employeeId);
-            return emp?.department.toLowerCase() === selectedDepartment.toLowerCase();
+            // Calculate pay
+            const hourlyRate = emp.monthlyPay / (shiftConfig.workingDaysPerMonth * shiftConfig.hoursPerDay);
+            const effectiveDays = presentDays + (halfDays * 0.5);
+            const basePay = effectiveDays * shiftConfig.hoursPerDay * hourlyRate;
+            const overtimePay = overtimeHours * hourlyRate * shiftConfig.overtimeMultiplier;
+
+            // Deductions for absent days (if any attendance was marked)
+            const totalMarkedDays = presentDays + halfDays + absentDays + leaveDays;
+            const deductions = totalMarkedDays > 0 ? absentDays * (emp.monthlyPay / shiftConfig.workingDaysPerMonth) : 0;
+
+            // Check if payroll entry exists
+            const existingEntry = payroll.find(
+                (p) => p.employeeId === emp.id && p.month === selectedMonth
+            );
+
+            return {
+                employee: emp,
+                daysWorked: presentDays,
+                halfDays,
+                absentDays,
+                leaveDays,
+                overtimeHours,
+                basePay: Math.round(basePay),
+                overtimePay: Math.round(overtimePay),
+                deductions: Math.round(deductions),
+                netPay: Math.round(basePay + overtimePay - deductions),
+                status: existingEntry?.status || 'draft',
+                existingEntry,
+            };
         });
-    }, [payrollData, selectedDepartment, displayEmployees]);
+    }, [employees, attendance, payroll, selectedMonth, shiftConfig]);
 
+    // Filter by department
+    const filteredPayroll = useMemo(() => {
+        if (!selectedDepartment) return calculatedPayroll;
+        return calculatedPayroll.filter(
+            (entry) => entry.employee.department.toLowerCase() === selectedDepartment.toLowerCase()
+        );
+    }, [calculatedPayroll, selectedDepartment]);
+
+    // Calculate totals
     const totals = useMemo(() => {
         return filteredPayroll.reduce(
             (acc, entry) => ({
@@ -96,151 +108,307 @@ export function Payroll() {
         );
     }, [filteredPayroll]);
 
-    const getEmployee = (id: string) => displayEmployees.find((e) => e.id === id);
+    // Generate payroll entries in Firestore
+    const handleGeneratePayroll = async () => {
+        if (employees.length === 0) {
+            alert('No employees found. Add employees first.');
+            return;
+        }
+
+        setGenerating(true);
+        try {
+            for (const calc of calculatedPayroll) {
+                if (!calc.existingEntry) {
+                    await createPayrollEntry({
+                        employeeId: calc.employee.id,
+                        month: selectedMonth,
+                        daysWorked: calc.daysWorked,
+                        halfDays: calc.halfDays,
+                        overtimeHours: calc.overtimeHours,
+                        deductions: calc.deductions,
+                        basePay: calc.basePay,
+                        overtimePay: calc.overtimePay,
+                        netPay: calc.netPay,
+                        status: 'draft',
+                    });
+                }
+            }
+            alert('Payroll generated successfully!');
+        } catch (error) {
+            console.error('Error generating payroll:', error);
+            alert('Failed to generate payroll. Please try again.');
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    // Export payroll as CSV
+    const handleExport = () => {
+        const headers = ['Employee', 'Department', 'Days Worked', 'Half Days', 'Overtime Hrs', 'Base Pay', 'OT Pay', 'Deductions', 'Net Pay', 'Status'];
+        const rows = filteredPayroll.map((entry) => [
+            entry.employee.name,
+            entry.employee.department,
+            entry.daysWorked,
+            entry.halfDays,
+            entry.overtimeHours,
+            entry.basePay,
+            entry.overtimePay,
+            entry.deductions,
+            entry.netPay,
+            entry.status,
+        ]);
+
+        const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `payroll-${selectedMonth}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // Generate payslip
+    const generatePayslip = (employee: Employee) => {
+        setPayslipEmployee(employee);
+    };
+
+    const payslipData = payslipEmployee
+        ? calculatedPayroll.find((c) => c.employee.id === payslipEmployee.id)
+        : null;
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-semibold text-[--color-text-primary]">Payroll</h1>
                     <p className="text-[--color-text-secondary] mt-1">Calculate and manage employee salaries</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button variant="secondary" size="sm">
+                    <Button variant="secondary" size="sm" onClick={handleExport}>
                         <Download className="w-4 h-4" />
-                        Export All
+                        Export CSV
                     </Button>
-                    <Button variant="primary" size="sm">
-                        <Calculator className="w-4 h-4" />
+                    <Button variant="primary" size="sm" onClick={handleGeneratePayroll} disabled={generating}>
+                        {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
                         Run Payroll
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricCard label="Total Payout" value={formatCurrency(totals.netPay)} accentColor="gold" />
-                <MetricCard label="Base Pay Total" value={formatCurrency(totals.basePay)} accentColor="blue" />
-                <MetricCard label="Overtime Pay" value={formatCurrency(totals.overtimePay)} accentColor="success" />
-                <MetricCard label="Pending Approval" value={`${totals.pending} employees`} accentColor="warning" />
-            </div>
-
-            <Card padding="md" variant="elevated">
-                <div className="flex items-start gap-4">
-                    <div className="p-3 bg-[--color-accent-gold]/10 rounded-[--radius-lg]">
-                        <Calculator className="w-6 h-6 text-[--color-accent-gold]" />
+            {employeesLoading ? (
+                <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-[--color-accent-gold]" />
+                </div>
+            ) : employees.length === 0 ? (
+                <Card padding="lg">
+                    <div className="text-center py-8">
+                        <Users className="w-12 h-12 mx-auto text-[--color-text-muted] mb-4" />
+                        <h3 className="text-lg font-medium text-[--color-text-primary] mb-2">No Employees</h3>
+                        <p className="text-[--color-text-secondary]">
+                            Add employees in the People page to generate payroll.
+                        </p>
                     </div>
-                    <div className="flex-1">
-                        <h3 className="font-medium text-[--color-text-primary]">Salary Calculation Formula</h3>
-                        <div className="mt-2 p-3 bg-[--color-bg-tertiary] rounded-[--radius-md] font-mono text-sm">
-                            <p className="text-[--color-text-secondary]">
-                                <span className="text-[--color-accent-blue]">Hourly Rate</span> = Monthly Pay ÷ ({shiftConfig.workingDaysPerMonth} days × {shiftConfig.hoursPerDay} hrs)
-                            </p>
-                            <p className="text-[--color-text-secondary] mt-1">
-                                <span className="text-[--color-success]">Base Pay</span> = Days Worked × {shiftConfig.hoursPerDay} hrs × Hourly Rate
-                            </p>
-                            <p className="text-[--color-text-secondary] mt-1">
-                                <span className="text-[--color-warning]">Overtime</span> = OT Hours × Hourly Rate × {shiftConfig.overtimeMultiplier}x
-                            </p>
-                            <p className="text-[--color-text-primary] mt-1 font-semibold">
-                                <span className="text-[--color-accent-gold]">Net Pay</span> = Base Pay + Overtime − Deductions
-                            </p>
+                </Card>
+            ) : (
+                <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <MetricCard label="Total Payout" value={formatCurrency(totals.netPay)} accentColor="gold" />
+                        <MetricCard label="Base Pay Total" value={formatCurrency(totals.basePay)} accentColor="blue" />
+                        <MetricCard label="Overtime Pay" value={formatCurrency(totals.overtimePay)} accentColor="success" />
+                        <MetricCard label="Pending Approval" value={`${totals.pending} employees`} accentColor="warning" />
+                    </div>
+
+                    <Card padding="md" variant="elevated">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-[--color-accent-gold]/10 rounded-[--radius-lg]">
+                                <Calculator className="w-6 h-6 text-[--color-accent-gold]" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-medium text-[--color-text-primary]">Salary Calculation Formula</h3>
+                                <div className="mt-2 p-3 bg-[--color-bg-tertiary] rounded-[--radius-md] font-mono text-sm">
+                                    <p className="text-[--color-text-secondary]">
+                                        <span className="text-[--color-accent-blue]">Hourly Rate</span> = Monthly Pay ÷ ({shiftConfig.workingDaysPerMonth} days × {shiftConfig.hoursPerDay} hrs)
+                                    </p>
+                                    <p className="text-[--color-text-secondary] mt-1">
+                                        <span className="text-[--color-success]">Base Pay</span> = Days Worked × {shiftConfig.hoursPerDay} hrs × Hourly Rate
+                                    </p>
+                                    <p className="text-[--color-text-secondary] mt-1">
+                                        <span className="text-[--color-warning]">Overtime</span> = OT Hours × Hourly Rate × {shiftConfig.overtimeMultiplier}x
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Card padding="md">
+                        <div className="flex items-center gap-4">
+                            <Select
+                                label="Month"
+                                options={MONTHS}
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(e.target.value)}
+                                className="w-48"
+                            />
+                            <Select
+                                label="Department"
+                                options={[
+                                    { value: '', label: 'All Departments' },
+                                    { value: 'engineering', label: 'Engineering' },
+                                    { value: 'sales', label: 'Sales' },
+                                    { value: 'marketing', label: 'Marketing' },
+                                    { value: 'hr', label: 'HR' },
+                                    { value: 'finance', label: 'Finance' },
+                                ]}
+                                value={selectedDepartment}
+                                onChange={(e) => setSelectedDepartment(e.target.value)}
+                                className="w-48"
+                            />
+                        </div>
+                    </Card>
+
+                    <Card padding="none">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-[--color-border]">
+                                        <th className="text-left text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Employee</th>
+                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Days</th>
+                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">OT Hrs</th>
+                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Base Pay</th>
+                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">OT Pay</th>
+                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Deductions</th>
+                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Net Pay</th>
+                                        <th className="text-center text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Status</th>
+                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[--color-border]">
+                                    {filteredPayroll.map((entry) => (
+                                        <tr key={entry.employee.id} className="hover:bg-[--color-bg-tertiary] transition-colors">
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-[--color-accent-gold]/20 flex items-center justify-center text-[--color-accent-gold] text-sm font-medium">
+                                                        {entry.employee.name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium text-[--color-text-primary]">{entry.employee.name}</p>
+                                                        <p className="text-xs text-[--color-text-muted]">{formatCurrency(entry.employee.monthlyPay)}/month</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-sm text-[--color-text-secondary]">
+                                                {entry.daysWorked}{entry.halfDays > 0 && <span className="text-[--color-text-muted]"> + {entry.halfDays}½</span>}
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-sm text-[--color-accent-blue]">{entry.overtimeHours}</td>
+                                            <td className="px-4 py-3 text-right text-sm text-[--color-text-secondary]">{formatCurrency(entry.basePay)}</td>
+                                            <td className="px-4 py-3 text-right text-sm text-[--color-success]">+{formatCurrency(entry.overtimePay)}</td>
+                                            <td className="px-4 py-3 text-right text-sm text-[--color-danger]">-{formatCurrency(entry.deductions)}</td>
+                                            <td className="px-4 py-3 text-right text-sm font-semibold text-[--color-accent-gold]">{formatCurrency(entry.netPay)}</td>
+                                            <td className="px-4 py-3 text-center">
+                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${entry.status === 'approved'
+                                                    ? 'bg-[--color-success]/10 text-[--color-success]'
+                                                    : 'bg-[--color-warning]/10 text-[--color-warning]'
+                                                    }`}>
+                                                    {entry.status === 'approved' ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                                                    {entry.status === 'approved' ? 'Approved' : 'Pending'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <Button variant="ghost" size="sm" onClick={() => generatePayslip(entry.employee)}>
+                                                    <FileText className="w-4 h-4" />
+                                                    Payslip
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="bg-[--color-bg-tertiary] border-t-2 border-[--color-border]">
+                                        <td className="px-4 py-3 font-semibold text-[--color-text-primary]">Total ({filteredPayroll.length} employees)</td>
+                                        <td colSpan={2} />
+                                        <td className="px-4 py-3 text-right font-semibold text-[--color-text-primary]">{formatCurrency(totals.basePay)}</td>
+                                        <td className="px-4 py-3 text-right font-semibold text-[--color-success]">+{formatCurrency(totals.overtimePay)}</td>
+                                        <td className="px-4 py-3 text-right font-semibold text-[--color-danger]">-{formatCurrency(totals.deductions)}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-lg text-[--color-accent-gold]">{formatCurrency(totals.netPay)}</td>
+                                        <td colSpan={2} />
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </Card>
+                </>
+            )}
+
+            {/* Payslip Modal */}
+            <Modal
+                isOpen={!!payslipEmployee}
+                onClose={() => setPayslipEmployee(null)}
+                title={`Payslip - ${payslipEmployee?.name || ''}`}
+                size="lg"
+            >
+                {payslipEmployee && payslipData && (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-[--color-text-muted]">Employee</p>
+                                <p className="font-medium text-[--color-text-primary]">{payslipEmployee.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-[--color-text-muted]">Department</p>
+                                <p className="font-medium text-[--color-text-primary]">{payslipEmployee.department}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-[--color-text-muted]">Role</p>
+                                <p className="font-medium text-[--color-text-primary]">{payslipEmployee.role}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-[--color-text-muted]">Period</p>
+                                <p className="font-medium text-[--color-text-primary]">{selectedMonth}</p>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-[--color-border] pt-4">
+                            <h4 className="font-medium text-[--color-text-primary] mb-3">Earnings</h4>
+                            <div className="space-y-2">
+                                <div className="flex justify-between">
+                                    <span className="text-[--color-text-secondary]">Base Pay ({payslipData.daysWorked} days)</span>
+                                    <span className="text-[--color-text-primary]">{formatCurrency(payslipData.basePay)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-[--color-text-secondary]">Overtime Pay ({payslipData.overtimeHours} hrs)</span>
+                                    <span className="text-[--color-success]">+{formatCurrency(payslipData.overtimePay)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-[--color-border] pt-4">
+                            <h4 className="font-medium text-[--color-text-primary] mb-3">Deductions</h4>
+                            <div className="flex justify-between">
+                                <span className="text-[--color-text-secondary]">Absence Deduction ({payslipData.absentDays} days)</span>
+                                <span className="text-[--color-danger]">-{formatCurrency(payslipData.deductions)}</span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-[--color-border] pt-4">
+                            <div className="flex justify-between items-center">
+                                <span className="text-lg font-semibold text-[--color-text-primary]">Net Pay</span>
+                                <span className="text-xl font-bold text-[--color-accent-gold]">{formatCurrency(payslipData.netPay)}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4">
+                            <Button variant="secondary" onClick={() => setPayslipEmployee(null)}>
+                                Close
+                            </Button>
+                            <Button variant="primary" onClick={() => window.print()}>
+                                <Download className="w-4 h-4" />
+                                Print Payslip
+                            </Button>
                         </div>
                     </div>
-                </div>
-            </Card>
-
-            <Card padding="md">
-                <div className="flex items-center gap-4">
-                    <Select label="Month" options={MONTHS} value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="w-48" />
-                    <Select
-                        label="Department"
-                        options={[
-                            { value: '', label: 'All Departments' },
-                            { value: 'engineering', label: 'Engineering' },
-                            { value: 'sales', label: 'Sales' },
-                            { value: 'marketing', label: 'Marketing' },
-                            { value: 'hr', label: 'HR' },
-                            { value: 'finance', label: 'Finance' },
-                        ]}
-                        value={selectedDepartment}
-                        onChange={(e) => setSelectedDepartment(e.target.value)}
-                        className="w-48"
-                    />
-                </div>
-            </Card>
-
-            <Card padding="none">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-[--color-border]">
-                                <th className="text-left text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Employee</th>
-                                <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Days Worked</th>
-                                <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Overtime</th>
-                                <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Base Pay</th>
-                                <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">OT Pay</th>
-                                <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Deductions</th>
-                                <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Net Pay</th>
-                                <th className="text-center text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Status</th>
-                                <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[--color-border]">
-                            {filteredPayroll.map((entry) => {
-                                const employee = getEmployee(entry.employeeId);
-                                if (!employee) return null;
-
-                                return (
-                                    <tr key={entry.id} className="hover:bg-[--color-bg-tertiary] transition-colors">
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-[--color-accent-gold]/20 flex items-center justify-center text-[--color-accent-gold] text-sm font-medium">
-                                                    {employee.name.charAt(0)}
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-[--color-text-primary]">{employee.name}</p>
-                                                    <p className="text-xs text-[--color-text-muted]">{formatCurrency(employee.monthlyPay)}/month</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-right text-sm text-[--color-text-secondary]">
-                                            {entry.daysWorked}{entry.halfDays > 0 && <span className="text-[--color-text-muted]"> + {entry.halfDays}½</span>}
-                                        </td>
-                                        <td className="px-4 py-3 text-right text-sm text-[--color-accent-blue]">{entry.overtimeHours} hrs</td>
-                                        <td className="px-4 py-3 text-right text-sm text-[--color-text-secondary]">{formatCurrency(entry.basePay)}</td>
-                                        <td className="px-4 py-3 text-right text-sm text-[--color-success]">+{formatCurrency(entry.overtimePay)}</td>
-                                        <td className="px-4 py-3 text-right text-sm text-[--color-danger]">-{formatCurrency(entry.deductions)}</td>
-                                        <td className="px-4 py-3 text-right text-sm font-semibold text-[--color-accent-gold]">{formatCurrency(entry.netPay)}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${entry.status === 'approved' ? 'bg-[--color-success]/10 text-[--color-success]' : 'bg-[--color-warning]/10 text-[--color-warning]'}`}>
-                                                {entry.status === 'approved' ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                                {entry.status === 'approved' ? 'Approved' : 'Pending'}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <Button variant="ghost" size="sm">
-                                                <FileText className="w-4 h-4" />
-                                                Payslip
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                        <tfoot>
-                            <tr className="bg-[--color-bg-tertiary] border-t-2 border-[--color-border]">
-                                <td className="px-4 py-3 font-semibold text-[--color-text-primary]">Total ({filteredPayroll.length} employees)</td>
-                                <td colSpan={2} />
-                                <td className="px-4 py-3 text-right font-semibold text-[--color-text-primary]">{formatCurrency(totals.basePay)}</td>
-                                <td className="px-4 py-3 text-right font-semibold text-[--color-success]">+{formatCurrency(totals.overtimePay)}</td>
-                                <td className="px-4 py-3 text-right font-semibold text-[--color-danger]">-{formatCurrency(totals.deductions)}</td>
-                                <td className="px-4 py-3 text-right font-bold text-lg text-[--color-accent-gold]">{formatCurrency(totals.netPay)}</td>
-                                <td colSpan={2} />
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </Card>
+                )}
+            </Modal>
         </div>
     );
 }

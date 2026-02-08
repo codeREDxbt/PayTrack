@@ -4,7 +4,7 @@ import { AppProvider } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppShell } from './components/layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { Overview, People, TimeLeave, Payroll, Settings, LoginPage } from './pages';
+import { Overview, People, TimeLeave, Payroll, Settings, LoginPage, Profile } from './pages';
 
 function App() {
   return (
@@ -28,6 +28,7 @@ function App() {
                         <Route path="/attendance" element={<TimeLeave />} />
                         <Route path="/payroll" element={<Payroll />} />
                         <Route path="/settings" element={<Settings />} />
+                        <Route path="/profile" element={<Profile />} />
                       </Routes>
                     </AppShell>
                   </ProtectedRoute>
