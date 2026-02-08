@@ -392,6 +392,8 @@ export function Payroll() {
                                     { value: 'marketing', label: 'Marketing' },
                                     { value: 'hr', label: 'HR' },
                                     { value: 'finance', label: 'Finance' },
+                                    { value: 'operations', label: 'Operations' },
+                                    { value: 'labor', label: 'Labor' },
                                 ]}
                                 value={selectedDepartment}
                                 onChange={(e) => setSelectedDepartment(e.target.value)}

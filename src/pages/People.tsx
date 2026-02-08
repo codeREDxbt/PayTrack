@@ -37,6 +37,7 @@ const departments = [
     { value: 'hr', label: 'HR' },
     { value: 'finance', label: 'Finance' },
     { value: 'operations', label: 'Operations' },
+    { value: 'labor', label: 'Labor' },
 ];
 
 export function People() {
