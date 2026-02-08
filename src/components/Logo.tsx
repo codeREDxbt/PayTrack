@@ -43,7 +43,10 @@ export function Logo({ className = '', showText = true, size = 'md' }: LogoProps
     return (
         <div className={`flex items-center ${s.gap} ${className}`}>
             {/* Icon */}
-            <div className={`${s.icon} ${s.radius} bg-[--color-accent-gold] flex items-center justify-center shadow-lg shadow-[--color-accent-gold]/20 flex-shrink-0`}>
+            <div
+                className={`${s.icon} ${s.radius} flex items-center justify-center shadow-lg shadow-[--color-accent-gold]/20 flex-shrink-0`}
+                style={{ backgroundColor: '#D8B04C' }}
+            >
                 <TrendingUp className={`${s.iconSize} text-black stroke-[3]`} />
             </div>
 
