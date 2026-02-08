@@ -113,7 +113,7 @@ export function Sidebar({ collapsed = false, onCollapse }: SidebarProps) {
             {!collapsed && (
                 <div className="p-4 border-t border-[--color-border]">
                     <p className="text-xs text-[--color-text-muted]">
-                        Salary Tracker v1.0
+                        Salary Tracker v1.2
                     </p>
                 </div>
             )}

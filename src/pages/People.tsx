@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Plus,
     Search,
@@ -39,8 +40,9 @@ const departments = [
 ];
 
 export function People() {
-    const { employees, addEmployee, updateEmployee, deleteEmployee } = useApp();
+    const { employees, addEmployee, updateEmployee, deleteEmployee, setSelectedEmployeeId } = useApp();
     const isMobile = useIsMobile();
+    const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
@@ -408,7 +410,16 @@ export function People() {
                                 <Edit2 className="w-4 h-4" />
                                 Edit Details
                             </Button>
-                            <Button variant="secondary" className="flex-1">
+                            <Button
+                                variant="secondary"
+                                className="flex-1"
+                                onClick={() => {
+                                    if (selectedEmployee) {
+                                        setSelectedEmployeeId(selectedEmployee.id);
+                                        navigate('/attendance');
+                                    }
+                                }}
+                            >
                                 View Attendance
                             </Button>
                             <Button
