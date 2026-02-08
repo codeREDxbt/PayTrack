@@ -94,15 +94,13 @@ export function LoginPage() {
                     </Button>
 
                     {/* Divider */}
-                    <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-[--color-border]" />
-                        </div>
-                        <div className="relative flex justify-center">
-                            <span className="px-3 bg-[--color-bg-secondary] text-xs text-[--color-text-muted]">
-                                Secure sign-in
-                            </span>
-                        </div>
+                    {/* Divider */}
+                    <div className="flex items-center gap-4 my-6">
+                        <div className="h-px flex-1 bg-[--color-border]" />
+                        <span className="text-xs text-[--color-text-muted]">
+                            Secure sign-in
+                        </span>
+                        <div className="h-px flex-1 bg-[--color-border]" />
                     </div>
 
                     {/* Info */}
