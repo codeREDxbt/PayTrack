@@ -1,26 +1,34 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { Employee, AttendanceRecord, PayrollEntry, ShiftConfig, Holiday, AppSettings } from '../lib/types';
 import { getDefaultShiftConfig } from '../utils/salaryCalculator';
+import { useEmployees, useAttendance, usePayroll } from '../hooks/useFirestore';
 
 // ================================
 // App Context
-// Global state management
+// Global state with Firestore sync
 // ================================
 
 interface AppContextValue {
-    // Employees
+    // Employees (from Firestore)
     employees: Employee[];
-    setEmployees: React.Dispatch<React.SetStateAction<Employee[]>>;
+    employeesLoading: boolean;
+    addEmployee: (employee: Omit<Employee, 'id'>) => Promise<string>;
+    updateEmployee: (id: string, updates: Partial<Employee>) => Promise<void>;
+    deleteEmployee: (id: string) => Promise<void>;
 
-    // Attendance
+    // Attendance (from Firestore)
     attendance: AttendanceRecord[];
-    setAttendance: React.Dispatch<React.SetStateAction<AttendanceRecord[]>>;
+    attendanceLoading: boolean;
+    markAttendance: (record: Omit<AttendanceRecord, 'id'>) => Promise<void>;
+    updateAttendance: (id: string, updates: Partial<AttendanceRecord>) => Promise<void>;
 
-    // Payroll
+    // Payroll (from Firestore)
     payroll: PayrollEntry[];
-    setPayroll: React.Dispatch<React.SetStateAction<PayrollEntry[]>>;
+    payrollLoading: boolean;
+    createPayrollEntry: (entry: Omit<PayrollEntry, 'id' | 'generatedAt'>) => Promise<void>;
+    updatePayrollEntry: (id: string, updates: Partial<PayrollEntry>) => Promise<void>;
 
-    // Settings
+    // Settings (local for now)
     shiftConfig: ShiftConfig;
     setShiftConfig: React.Dispatch<React.SetStateAction<ShiftConfig>>;
     holidays: Holiday[];
@@ -33,13 +41,18 @@ interface AppContextValue {
     setSelectedEmployeeId: (id: string | null) => void;
     currentMonth: string;
     setCurrentMonth: (month: string) => void;
+
+    // Legacy setters for compatibility
+    setEmployees: React.Dispatch<React.SetStateAction<Employee[]>>;
+    setAttendance: React.Dispatch<React.SetStateAction<AttendanceRecord[]>>;
+    setPayroll: React.Dispatch<React.SetStateAction<PayrollEntry[]>>;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 
 const defaultSettings: AppSettings = {
     defaultShiftId: 'default',
-    companyName: 'My Company',
+    companyName: 'PayTrack',
     currency: 'INR',
     currencySymbol: '₹',
     theme: 'dark',
@@ -47,35 +60,90 @@ const defaultSettings: AppSettings = {
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
-    // Core data
+    // UI State
+    const [currentMonth, setCurrentMonth] = useState(() => new Date().toISOString().slice(0, 7));
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+
+    // Firestore hooks
+    const {
+        employees: firestoreEmployees,
+        loading: employeesLoading,
+        addEmployee,
+        updateEmployee,
+        deleteEmployee,
+    } = useEmployees();
+
+    const {
+        attendance: firestoreAttendance,
+        loading: attendanceLoading,
+        markAttendance,
+        updateAttendance,
+    } = useAttendance(currentMonth);
+
+    const {
+        payroll: firestorePayroll,
+        loading: payrollLoading,
+        createPayrollEntry,
+        updatePayrollEntry,
+    } = usePayroll(currentMonth);
+
+    // Local state for data (synced from Firestore)
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [payroll, setPayroll] = useState<PayrollEntry[]>([]);
 
-    // Settings
+    // Settings (local for now - can be moved to Firestore later)
     const [shiftConfig, setShiftConfig] = useState<ShiftConfig>(getDefaultShiftConfig());
     const [holidays, setHolidays] = useState<Holiday[]>([]);
     const [settings, setSettings] = useState<AppSettings>(defaultSettings);
 
-    // UI State
-    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
-    const [currentMonth, setCurrentMonth] = useState(() => new Date().toISOString().slice(0, 7));
+    // Sync Firestore data to local state
+    useEffect(() => {
+        setEmployees(firestoreEmployees);
+    }, [firestoreEmployees]);
+
+    useEffect(() => {
+        setAttendance(firestoreAttendance);
+    }, [firestoreAttendance]);
+
+    useEffect(() => {
+        setPayroll(firestorePayroll);
+    }, [firestorePayroll]);
 
     return (
         <AppContext.Provider
             value={{
+                // Employees
                 employees,
+                employeesLoading,
+                addEmployee,
+                updateEmployee,
+                deleteEmployee,
                 setEmployees,
+
+                // Attendance
                 attendance,
+                attendanceLoading,
+                markAttendance,
+                updateAttendance,
                 setAttendance,
+
+                // Payroll
                 payroll,
+                payrollLoading,
+                createPayrollEntry,
+                updatePayrollEntry,
                 setPayroll,
+
+                // Settings
                 shiftConfig,
                 setShiftConfig,
                 holidays,
                 setHolidays,
                 settings,
                 setSettings,
+
+                // UI State
                 selectedEmployeeId,
                 setSelectedEmployeeId,
                 currentMonth,
