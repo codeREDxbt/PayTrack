@@ -48,26 +48,11 @@ A comprehensive salary and attendance management application built with React, T
     npm install
     ```
 
-3.  **Firebase Configuration:**
-    -   Create a project in the [Firebase Console](https://console.firebase.google.com/).
-    -   Enable **Authentication** and set up the **Google** sign-in provider.
-    -   Create a **Firestore Database** in production mode.
-    -   Create a `.env` file in the root directory and add your Firebase configuration keys:
-
-    ```env
-    VITE_FIREBASE_API_KEY=your_api_key
-    VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-    VITE_FIREBASE_PROJECT_ID=your_project_id
-    VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-    VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-    VITE_FIREBASE_APP_ID=your_app_id
-    ```
-
-4.  **Run the development server:**
+3.  **Run the development server:**
     ```bash
     npm run dev
     ```
-
+NOte : Use your own api keys
 ## Scripts
 
 -   `npm run dev`: Starts the development server.
