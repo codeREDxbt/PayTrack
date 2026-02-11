@@ -78,10 +78,8 @@ export function Modal({
                 aria-hidden="true"
             />
 
-            {/* Modal content */}
             <div
                 ref={modalRef}
-                tabIndex={-1}
                 className={cn(
                     `
             relative w-full

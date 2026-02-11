@@ -65,7 +65,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
                             <option
                                 key={option.value}
                                 value={option.value}
-                                style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)' }}
+                                className="bg-[#1e293b] text-slate-200"
                             >
                                 {option.label}
                             </option>

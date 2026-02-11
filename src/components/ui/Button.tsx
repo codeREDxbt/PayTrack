@@ -18,7 +18,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       inline-flex items-center justify-center gap-2
       font-medium rounded-[--radius-md]
       transition-all duration-[--transition-fast]
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-focus] focus-visible:ring-offset-2 focus-visible:ring-offset-[--color-bg-primary]
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-focus] focus-visible:ring-offset-2 focus-visible:ring-offset-black
       disabled:pointer-events-none disabled:opacity-50
     `;
 
@@ -27,6 +27,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         bg-[--color-accent-gold] text-[--color-text-inverse]
         hover:bg-[--color-accent-gold-hover]
         active:scale-[0.98]
+        shadow-[0_2px_10px_rgba(216,176,76,0.2)]
       `,
             secondary: `
         bg-[--color-bg-tertiary] text-[--color-text-primary]

@@ -29,17 +29,21 @@ export function LoginPage() {
 
     return (
         <div className="min-h-screen bg-[--color-bg-primary] flex items-center justify-center p-4">
+            <a href="#main-content" className="skip-link">
+                Skip to main content
+            </a>
+
             <div className="w-full max-w-md">
                 {/* Logo & Branding */}
-                <div className="flex flex-col items-center mb-8">
+                <header className="flex flex-col items-center mb-8">
                     <Logo size="xl" />
-                    <p className="text-[--color-text-secondary] mt-4 tracking-wide font-medium">
+                    <h1 className="text-[--color-text-secondary] mt-4 tracking-wide font-medium">
                         EMPLOYER COMMAND CENTER
-                    </p>
-                </div>
+                    </h1>
+                </header>
 
                 {/* Login Card */}
-                <div className="bg-[--color-bg-secondary] border border-[--color-border] rounded-2xl p-8 shadow-xl">
+                <main id="main-content" className="bg-[--color-bg-secondary] border border-[--color-border] rounded-2xl p-8 shadow-xl">
                     <h2 className="text-xl font-semibold text-[--color-text-primary] text-center mb-6">
                         Welcome Back
                     </h2>
@@ -66,7 +70,7 @@ export function LoginPage() {
                         ) : (
                             <div className="flex items-center gap-3">
                                 {/* Google Icon */}
-                                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                                     <path
                                         fill="currentColor"
                                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -90,7 +94,6 @@ export function LoginPage() {
                     </Button>
 
                     {/* Divider */}
-                    {/* Divider */}
                     <div className="flex items-center gap-4 my-6">
                         <div className="h-px flex-1 bg-[--color-border]" />
                         <span className="text-xs text-[--color-text-muted]">
@@ -104,12 +107,12 @@ export function LoginPage() {
                         Your data is stored securely in the cloud.<br />
                         Access from any device with your Google account.
                     </p>
-                </div>
+                </main>
 
                 {/* Footer */}
-                <p className="text-xs text-[--color-text-muted] text-center mt-6">
+                <footer className="text-xs text-[--color-text-muted] text-center mt-6">
                     © 2026 PayTrack • Employer Command Center
-                </p>
+                </footer>
             </div>
         </div>
     );

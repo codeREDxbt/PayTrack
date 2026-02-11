@@ -55,7 +55,7 @@ export function BottomNav() {
                                     className="w-5 h-5"
                                     strokeWidth={isActive ? 2.5 : 2}
                                 />
-                                <span className="text-[10px] font-medium leading-none">
+                                <span className="text-xs font-medium leading-none">
                                     {item.label}
                                 </span>
                             </>

@@ -40,7 +40,7 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
             )}
         >
             {/* Search */}
-            <div className="relative w-80">
+            <div className="relative w-full max-w-[120px] sm:max-w-[200px] md:max-w-xs lg:max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--color-text-muted]" />
                 <input
                     type="text"
@@ -93,7 +93,6 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
               text-[--color-text-muted]
               hover:text-[--color-danger]
               hover:bg-[--color-danger-muted]
-              transition-colors
             "
                         onClick={handleSignOut}
                         aria-label="Sign out"

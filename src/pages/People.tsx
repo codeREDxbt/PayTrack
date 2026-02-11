@@ -250,22 +250,22 @@ export function People() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-[--color-border]">
-                                    <th className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
+                                    <th scope="col" className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
                                         Employee
                                     </th>
-                                    <th className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
+                                    <th scope="col" className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
                                         Role
                                     </th>
-                                    <th className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
+                                    <th scope="col" className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
                                         Department
                                     </th>
-                                    <th className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
+                                    <th scope="col" className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
                                         Monthly Pay
                                     </th>
-                                    <th className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
+                                    <th scope="col" className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
                                         Status
                                     </th>
-                                    <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
+                                    <th scope="col" className="text-right text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
                                         Actions
                                     </th>
                                 </tr>
@@ -274,8 +274,15 @@ export function People() {
                                 {filteredEmployees.map((employee) => (
                                     <tr
                                         key={employee.id}
-                                        className="hover:bg-[--color-bg-tertiary] transition-colors cursor-pointer"
+                                        tabIndex={0}
+                                        className="hover:bg-[--color-bg-tertiary] focus-visible:bg-[--color-bg-tertiary] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-focus] transition-colors cursor-pointer"
                                         onClick={() => handleViewEmployee(employee)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                handleViewEmployee(employee);
+                                            }
+                                        }}
                                     >
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-3">
@@ -318,14 +325,14 @@ export function People() {
                                             <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                                                 <button
                                                     onClick={() => handleViewEmployee(employee)}
-                                                    className="p-1.5 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-text-primary] hover:bg-[--color-bg-elevated] transition-colors"
+                                                    className="p-1.5 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-text-primary] hover:bg-[--color-bg-elevated] focus-visible:ring-2 focus-visible:ring-[--color-focus] transition-colors"
                                                     aria-label="View employee"
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleEditEmployee(employee)}
-                                                    className="p-1.5 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-text-primary] hover:bg-[--color-bg-elevated] transition-colors"
+                                                    className="p-1.5 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-text-primary] hover:bg-[--color-bg-elevated] focus-visible:ring-2 focus-visible:ring-[--color-focus] transition-colors"
                                                     aria-label="Edit employee"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
@@ -335,7 +342,7 @@ export function People() {
                                                         e.stopPropagation();
                                                         handleDeleteEmployee(employee);
                                                     }}
-                                                    className="p-1.5 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-danger] hover:bg-[--color-danger]/10 transition-colors"
+                                                    className="p-1.5 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-danger] hover:bg-[--color-danger]/10 focus-visible:ring-2 focus-visible:ring-[--color-danger] transition-colors"
                                                     aria-label="Delete employee"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
