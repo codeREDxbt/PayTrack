@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, Bell, LogOut } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { ThemeToggle } from '../ThemeToggle';
 import { cn } from '../../lib/utils';
 
@@ -13,7 +14,16 @@ interface HeaderProps {
 }
 
 export function Header({ sidebarCollapsed = false }: HeaderProps) {
+    const { signOut } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
+
+    const handleSignOut = async () => {
+        try {
+            await signOut();
+        } catch (error) {
+            console.error('Sign out failed:', error);
+        }
+    };
 
     return (
         <header
@@ -85,6 +95,7 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
               hover:bg-[--color-danger-muted]
               transition-colors
             "
+                        onClick={handleSignOut}
                         aria-label="Sign out"
                     >
                         <LogOut className="w-5 h-5" />
