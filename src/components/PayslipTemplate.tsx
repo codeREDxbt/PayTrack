@@ -77,19 +77,22 @@ export function PayslipTemplate({
             {/* Payslip Preview - This will be converted to PDF */}
             <div
                 ref={payslipRef}
-                className="bg-white text-gray-900 p-8 rounded-lg shadow-lg max-w-2xl mx-auto"
-                style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+                className="bg-white text-gray-900 p-10 rounded-none shadow-2xl max-w-2xl mx-auto border-t-8 border-[#D8B04C]"
+                style={{ fontFamily: "'Manrope', sans-serif" }}
             >
                 {/* Header */}
-                <div className="border-b-2 border-gray-200 pb-4 mb-6">
-                    <div className="flex justify-between items-start">
+                <div className="pb-8 mb-8 border-b border-gray-100">
+                    <div className="flex justify-between items-center">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">{companyName}</h1>
-                            <p className="text-sm text-gray-600">{companyAddress}</p>
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 rounded-full bg-[#D8B04C] flex items-center justify-center text-white font-bold text-sm">P</div>
+                                <h1 className="text-xl font-bold tracking-widest text-gray-900 uppercase">{companyName}</h1>
+                            </div>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest">{companyAddress}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-lg font-semibold text-gray-900">SALARY SLIP</p>
-                            <p className="text-sm text-gray-600">{monthDisplay}</p>
+                            <p className="text-xs font-bold text-[#D8B04C] tracking-[0.3em] uppercase mb-1">OFFICIAL PAYSLIP</p>
+                            <p className="text-sm font-medium text-gray-900">{monthDisplay}</p>
                         </div>
                     </div>
                 </div>

@@ -15,7 +15,7 @@
   /* Border Colors */
   --color-border: #2A2D34;
   --color-border-subtle: #1E2025;
-  --color-border-focus: #6EE7FF;
+  --color-border-focus: #D8B04C;
 
   /* Text Colors */
   --color-text-primary: #F5F6F7;
@@ -38,10 +38,10 @@
   --color-danger-muted: #7F1D1D;
 
   /* Focus Ring */
-  --color-focus: #6EE7FF;
+  --color-focus: #D8B04C;
 
-  /* Glassmorphism (Modals/Drawers only) */
-  --glass-bg: rgba(22, 23, 26, 0.85);
+  /* Glassmorphism */
+  --glass-bg: rgba(22, 23, 26, 0.7);
   --glass-border: rgba(255, 255, 255, 0.08);
 
   /* Shadows */
@@ -56,13 +56,13 @@
   --spacing-card: 16px;
 
   /* Border Radius */
-  --radius-sm: 6px;
+  --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
 
   /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   /* Transitions */
@@ -172,11 +172,31 @@ body {
 
 .glass {
   background: var(--glass-bg);
-  background: rgba(30, 41, 59, 0.7);
-  /* Fallback for browsers without backdrop-filter */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-gold {
+  background: rgba(216, 176, 75, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(216, 176, 75, 0.3);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #d8b04b 0%, #f1d58a 50%, #b38a2d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gold-gradient-bg {
+  background: linear-gradient(135deg, #d8b04b 0%, #f1d58a 50%, #b38a2d 100%);
+}
+
+.letter-spacing-widest {
+  letter-spacing: 0.3em;
 }
 
 .text-gradient-gold {

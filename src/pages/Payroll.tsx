@@ -314,15 +314,15 @@ export function Payroll() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-semibold text-[--color-text-primary]">Payroll</h1>
-                    <p className="text-[--color-text-secondary] mt-1">Calculate and manage employee salaries</p>
+                    <h1 className="text-3xl font-light uppercase tracking-widest gold-gradient-text">Payroll</h1>
+                    <p className="text-[--color-text-secondary] mt-1 text-xs uppercase tracking-widest opacity-60">Precision Calculations. Professional Payouts.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button variant="secondary" size="sm" onClick={handleExport}>
+                    <Button variant="secondary" size="sm" onClick={handleExport} className="glass border-primary/20">
                         <Download className="w-4 h-4" />
                         Export XLS
                     </Button>
-                    <Button variant="primary" size="sm" onClick={handleGeneratePayroll} disabled={generating}>
+                    <Button variant="primary" size="sm" onClick={handleGeneratePayroll} disabled={generating} className="gold-gradient-bg text-black font-bold">
                         {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
                         Run Payroll
                     </Button>
@@ -346,10 +346,10 @@ export function Payroll() {
             ) : (
                 <>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <MetricCard label="Total Payout" value={formatCurrency(totals.netPay)} accentColor="gold" />
-                        <MetricCard label="Base Pay Total" value={formatCurrency(totals.basePay)} accentColor="blue" />
-                        <MetricCard label="Overtime Pay" value={formatCurrency(totals.overtimePay)} accentColor="success" />
-                        <MetricCard label="Pending Approval" value={`${totals.pending} employees`} accentColor="warning" />
+                        <MetricCard label="Total Payout" value={formatCurrency(totals.netPay)} accentColor="gold" className="glass-gold border-primary/20" />
+                        <MetricCard label="Base Pay Total" value={formatCurrency(totals.basePay)} accentColor="blue" className="bg-accent-blue/5 border-accent-blue/10" />
+                        <MetricCard label="Overtime Pay" value={formatCurrency(totals.overtimePay)} accentColor="success" className="bg-success/5 border-success/10" />
+                        <MetricCard label="Pending Approval" value={`${totals.pending} employees`} accentColor="warning" className="bg-warning/5 border-warning/10" />
                     </div>
 
                     <Card padding="md" variant="elevated">

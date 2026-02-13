@@ -207,11 +207,11 @@ export function TimeLeave() {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-semibold text-[--color-text-primary]">
+                    <h1 className="text-3xl font-light uppercase tracking-widest gold-gradient-text">
                         Time & Leave
                     </h1>
-                    <p className="text-[--color-text-secondary] mt-1">
-                        Track attendance, overtime, and leave
+                    <p className="text-[--color-text-secondary] mt-1 text-xs uppercase tracking-widest opacity-60">
+                        Precision Tracking. Professional Growth.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -240,11 +240,11 @@ export function TimeLeave() {
 
             {/* Stats Row */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <MetricCard label="Present Days" value={stats.present} accentColor="success" />
-                <MetricCard label="Absent Days" value={stats.absent} accentColor="danger" />
-                <MetricCard label="Leave Days" value={stats.leave} accentColor="warning" />
-                <MetricCard label="Half Days" value={stats.halfDay} accentColor="gold" />
-                <MetricCard label="Overtime Hours" value={`${stats.overtime} hrs`} accentColor="blue" />
+                <MetricCard label="Present Days" value={stats.present} accentColor="success" className="bg-success/5 border-success/10" />
+                <MetricCard label="Absent Days" value={stats.absent} accentColor="danger" className="bg-danger/5 border-danger/10" />
+                <MetricCard label="Leave Days" value={stats.leave} accentColor="warning" className="bg-warning/5 border-warning/10" />
+                <MetricCard label="Half Days" value={stats.halfDay} accentColor="gold" className="glass-gold border-primary/10" />
+                <MetricCard label="Overtime Hours" value={`${stats.overtime} hrs`} accentColor="blue" className="bg-accent-blue/5 border-accent-blue/10" />
             </div>
 
             {/* Loading state */}

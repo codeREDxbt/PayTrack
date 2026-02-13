@@ -113,11 +113,11 @@ export function Sidebar({ collapsed = false, onCollapse }: SidebarProps) {
             {/* Footer */}
             {!collapsed && (
                 <div className="p-4 border-t border-[--color-border]">
-                    <p className="text-xs text-[--color-text-muted]">
-                        PAYTRACK v1.3
+                    <p className="text-[10px] font-bold uppercase tracking-[0.3em] gold-gradient-text">
+                        PAYTRACK
                     </p>
-                    <p className="text-[10px] text-[--color-text-muted]/70 mt-1">
-                        Made By codeRED
+                    <p className="text-[9px] text-[--color-text-muted]/70 mt-1 uppercase tracking-widest">
+                        v1.3 • codeRED LUXE
                     </p>
                 </div>
             )}

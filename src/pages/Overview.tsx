@@ -69,10 +69,10 @@ export function Overview() {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-semibold text-[--color-text-primary]">
+                    <h1 className="text-3xl font-light uppercase tracking-widest gold-gradient-text">
                         Dashboard
                     </h1>
-                    <p className="text-[--color-text-secondary] mt-1">
+                    <p className="text-[--color-text-secondary] mt-1 text-xs uppercase tracking-widest opacity-60">
                         Overview for {new Date(currentMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                     </p>
                 </div>
@@ -81,13 +81,13 @@ export function Overview() {
                         options={MONTHS}
                         value={currentMonth}
                         onChange={(e) => setCurrentMonth(e.target.value)}
-                        className="w-40"
+                        className="w-44"
                     />
-                    <Button variant="secondary" size="sm" onClick={() => navigate('/attendance')}>
+                    <Button variant="secondary" size="sm" onClick={() => navigate('/attendance')} className="glass-gold text-primary border-primary/30">
                         <Calendar className="w-4 h-4" />
                         Mark Attendance
                     </Button>
-                    <Button variant="primary" size="sm" onClick={() => navigate('/people')}>
+                    <Button variant="primary" size="sm" onClick={() => navigate('/people')} className="gold-gradient-bg text-black font-bold">
                         <Plus className="w-4 h-4" />
                         Add Employee
                     </Button>
@@ -108,24 +108,28 @@ export function Overview() {
                             value={stats.totalEmployees}
                             icon={<Users className="w-5 h-5" />}
                             accentColor="gold"
+                            className="glass-gold border-primary/10"
                         />
                         <MetricCard
                             label="Present Today"
                             value={stats.presentToday}
                             icon={<UserCheck className="w-5 h-5" />}
                             accentColor="success"
+                            className="bg-success/5 border-success/10"
                         />
                         <MetricCard
                             label="On Leave"
                             value={stats.onLeaveToday}
                             icon={<UserX className="w-5 h-5" />}
                             accentColor="warning"
+                            className="bg-warning/5 border-warning/10"
                         />
                         <MetricCard
                             label="Monthly Payout"
                             value={formatCurrency(stats.totalMonthlyPayout)}
                             icon={<Wallet className="w-5 h-5" />}
                             accentColor="blue"
+                            className="bg-accent-blue/5 border-accent-blue/10"
                         />
                     </div>
 

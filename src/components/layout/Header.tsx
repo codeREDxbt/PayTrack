@@ -83,7 +83,7 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
 
                 {/* User Menu */}
                 <div className="ml-2 pl-4 border-l border-[--color-border] flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[--color-accent-gold] flex items-center justify-center text-[--color-text-inverse] text-sm font-medium">
+                    <div className="w-8 h-8 rounded-full gold-gradient-bg flex items-center justify-center text-[--color-text-inverse] text-sm font-bold shadow-lg shadow-primary/20">
                         A
                     </div>
                     <button
@@ -93,6 +93,7 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
               text-[--color-text-muted]
               hover:text-[--color-danger]
               hover:bg-[--color-danger-muted]
+              transition-colors
             "
                         onClick={handleSignOut}
                         aria-label="Sign out"
