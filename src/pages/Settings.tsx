@@ -137,10 +137,10 @@ export function Settings() {
             {/* Page Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold text-[--color-text-primary]">
+                    <h1 className="text-4xl font-black uppercase tracking-widest text-[--color-text-primary]">
                         Settings
                     </h1>
-                    <p className="text-[--color-text-secondary] mt-1">
+                    <p className="text-[--color-text-secondary] mt-1 text-xs font-bold uppercase tracking-widest">
                         Configure your salary tracker
                     </p>
                 </div>

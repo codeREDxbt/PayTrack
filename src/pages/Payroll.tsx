@@ -9,6 +9,7 @@ import {
 import { useApp } from '../contexts/AppContext';
 import { Button, Card, Select, MetricCard, Modal } from '../components/ui';
 import { formatCurrency } from '../utils/salaryCalculator';
+import { useIsMobile } from '../hooks/useResponsive';
 import type { Employee } from '../lib/types';
 
 // ================================
@@ -43,6 +44,7 @@ export function Payroll() {
         overtimeHours: 0,
         deductions: 0,
     });
+    const isMobile = useIsMobile();
 
     // Calculate payroll from actual attendance data
     const calculatedPayroll = useMemo(() => {
@@ -375,13 +377,13 @@ export function Payroll() {
                     </Card>
 
                     <Card padding="md">
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-end gap-4">
                             <Select
                                 label="Month"
                                 options={MONTHS}
                                 value={selectedMonth}
                                 onChange={(e) => setSelectedMonth(e.target.value)}
-                                className="w-48"
+                                className="w-full sm:w-48"
                             />
                             <Select
                                 label="Department"
@@ -397,91 +399,152 @@ export function Payroll() {
                                 ]}
                                 value={selectedDepartment}
                                 onChange={(e) => setSelectedDepartment(e.target.value)}
-                                className="w-48"
+                                className="w-full sm:w-48"
                             />
                         </div>
                     </Card>
 
-                    <Card padding="none">
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b-2 border-[--color-border] bg-[--color-bg-secondary]">
-                                        <th className="text-left text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Employee</th>
-                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Days</th>
-                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">OT Hrs</th>
-                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Base Pay</th>
-                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">OT Pay</th>
-                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Deductions</th>
-                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Net Pay</th>
-                                        <th className="text-center text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Status</th>
-                                        <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y-2 divide-[--color-border]">
-                                    {filteredPayroll.map((entry) => (
-                                        <tr key={entry.employee.id} className="hover:bg-[--color-bg-tertiary] transition-colors">
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-[--color-accent-gold]/20 flex items-center justify-center text-[--color-accent-gold] text-sm font-medium">
-                                                        {entry.employee.name.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-medium text-[--color-text-primary]">{entry.employee.name}</p>
-                                                        <p className="text-xs text-[--color-text-muted]">{formatCurrency(entry.employee.monthlyPay)}/month</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-sm text-[--color-text-secondary]">
-                                                {entry.daysWorked}{entry.halfDays > 0 && <span className="text-[--color-text-muted]"> + {entry.halfDays}½</span>}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-sm text-[--color-accent-blue]">{entry.overtimeHours}</td>
-                                            <td className="px-4 py-3 text-right text-sm text-[--color-text-secondary]">{formatCurrency(entry.basePay)}</td>
-                                            <td className="px-4 py-3 text-right text-sm text-[--color-success]">+{formatCurrency(entry.overtimePay)}</td>
-                                            <td className="px-4 py-3 text-right text-sm text-[--color-danger]">-{formatCurrency(entry.deductions)}</td>
-                                            <td className="px-4 py-3 text-right text-sm font-semibold text-[--color-accent-gold]">{formatCurrency(entry.netPay)}</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <select
-                                                    value={entry.status}
-                                                    onChange={(e) => handleStatusChange(entry, e.target.value as any)}
-                                                    className={`text-xs font-medium rounded-full px-2 py-1 border border-transparent focus:ring-1 focus:ring-[--color-accent-gold] outline-none ${entry.status === 'paid' ? 'bg-[--color-success]/10 text-[--color-success]' :
-                                                        entry.status === 'approved' ? 'bg-[--color-accent-blue]/10 text-[--color-accent-blue]' :
-                                                            'bg-[--color-warning]/10 text-[--color-warning]'
-                                                        }`}
-                                                >
-                                                    <option value="draft">Pending</option>
-                                                    <option value="approved">Approved</option>
-                                                    <option value="paid">Paid</option>
-                                                </select>
-                                                {/* Re-implementing correctly below */}
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button variant="ghost" size="sm" onClick={() => handleEditClick(entry)}>
-                                                        Edit
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm" onClick={() => generatePayslip(entry.employee)}>
-                                                        <FileText className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot>
-                                    <tr className="bg-[--color-bg-tertiary] border-t-2 border-[--color-border]">
-                                        <td className="px-4 py-3 font-semibold text-[--color-text-primary]">Total ({filteredPayroll.length} employees)</td>
-                                        <td colSpan={2} />
-                                        <td className="px-4 py-3 text-right font-semibold text-[--color-text-primary]">{formatCurrency(totals.basePay)}</td>
-                                        <td className="px-4 py-3 text-right font-semibold text-[--color-success]">+{formatCurrency(totals.overtimePay)}</td>
-                                        <td className="px-4 py-3 text-right font-semibold text-[--color-danger]">-{formatCurrency(totals.deductions)}</td>
-                                        <td className="px-4 py-3 text-right font-bold text-lg text-[--color-accent-gold]">{formatCurrency(totals.netPay)}</td>
-                                        <td colSpan={2} />
-                                    </tr>
-                                </tfoot>
-                            </table>
+                    {isMobile ? (
+                        /* Mobile: Card list */
+                        <div className="space-y-3">
+                            {filteredPayroll.map((entry) => (
+                                <Card key={entry.employee.id} padding="md">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-full bg-[--color-accent-gold]/20 flex items-center justify-center text-[--color-accent-gold] font-medium">
+                                                {entry.employee.name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-[--color-text-primary]">{entry.employee.name}</p>
+                                                <p className="text-xs text-[--color-text-muted]">{entry.employee.department} · {entry.daysWorked} days worked</p>
+                                            </div>
+                                        </div>
+                                        <span className="text-lg font-black text-[--color-accent-gold]">{formatCurrency(entry.netPay)}</span>
+                                    </div>
+                                    <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                                        <div className="bg-[--color-bg-tertiary] p-2">
+                                            <p className="text-[--color-text-muted] uppercase">Base</p>
+                                            <p className="font-bold text-[--color-text-primary]">{formatCurrency(entry.basePay)}</p>
+                                        </div>
+                                        <div className="bg-[--color-bg-tertiary] p-2">
+                                            <p className="text-[--color-text-muted] uppercase">OT</p>
+                                            <p className="font-bold text-[--color-success]">+{formatCurrency(entry.overtimePay)}</p>
+                                        </div>
+                                        <div className="bg-[--color-bg-tertiary] p-2">
+                                            <p className="text-[--color-text-muted] uppercase">Deduct</p>
+                                            <p className="font-bold text-[--color-danger]">-{formatCurrency(entry.deductions)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 flex items-center justify-between">
+                                        <select
+                                            value={entry.status}
+                                            onChange={(e) => handleStatusChange(entry, e.target.value as any)}
+                                            className={`text-xs font-medium rounded-full px-3 py-1.5 border border-transparent focus:ring-1 focus:ring-[--color-accent-gold] outline-none ${entry.status === 'paid' ? 'bg-[--color-success]/10 text-[--color-success]' :
+                                                    entry.status === 'approved' ? 'bg-[--color-accent-blue]/10 text-[--color-accent-blue]' :
+                                                        'bg-[--color-warning]/10 text-[--color-warning]'
+                                                }`}
+                                        >
+                                            <option value="draft">Pending</option>
+                                            <option value="approved">Approved</option>
+                                            <option value="paid">Paid</option>
+                                        </select>
+                                        <div className="flex gap-2">
+                                            <Button variant="ghost" size="sm" onClick={() => handleEditClick(entry)}>Edit</Button>
+                                            <Button variant="ghost" size="sm" onClick={() => generatePayslip(entry.employee)}>
+                                                <FileText className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                            {filteredPayroll.length === 0 && (
+                                <div className="text-center py-12">
+                                    <p className="text-[--color-text-muted]">No payroll data found</p>
+                                </div>
+                            )}
                         </div>
-                    </Card>
+                    ) : (
+                        /* Desktop/Tablet: Table */
+                        <Card padding="none">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b-2 border-[--color-border] bg-[--color-bg-secondary]">
+                                            <th className="text-left text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Employee</th>
+                                            <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Days</th>
+                                            <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">OT Hrs</th>
+                                            <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Base Pay</th>
+                                            <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">OT Pay</th>
+                                            <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Deductions</th>
+                                            <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Net Pay</th>
+                                            <th className="text-center text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Status</th>
+                                            <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y-2 divide-[--color-border]">
+                                        {filteredPayroll.map((entry) => (
+                                            <tr key={entry.employee.id} className="hover:bg-[--color-bg-tertiary] transition-colors">
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-[--color-accent-gold]/20 flex items-center justify-center text-[--color-accent-gold] text-sm font-medium">
+                                                            {entry.employee.name.charAt(0)}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-[--color-text-primary]">{entry.employee.name}</p>
+                                                            <p className="text-xs text-[--color-text-muted]">{formatCurrency(entry.employee.monthlyPay)}/month</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-right text-sm text-[--color-text-secondary]">
+                                                    {entry.daysWorked}{entry.halfDays > 0 && <span className="text-[--color-text-muted]"> + {entry.halfDays}½</span>}
+                                                </td>
+                                                <td className="px-4 py-3 text-right text-sm text-[--color-accent-blue]">{entry.overtimeHours}</td>
+                                                <td className="px-4 py-3 text-right text-sm text-[--color-text-secondary]">{formatCurrency(entry.basePay)}</td>
+                                                <td className="px-4 py-3 text-right text-sm text-[--color-success]">+{formatCurrency(entry.overtimePay)}</td>
+                                                <td className="px-4 py-3 text-right text-sm text-[--color-danger]">-{formatCurrency(entry.deductions)}</td>
+                                                <td className="px-4 py-3 text-right text-sm font-semibold text-[--color-accent-gold]">{formatCurrency(entry.netPay)}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <select
+                                                        value={entry.status}
+                                                        onChange={(e) => handleStatusChange(entry, e.target.value as any)}
+                                                        className={`text-xs font-medium rounded-full px-2 py-1 border border-transparent focus:ring-1 focus:ring-[--color-accent-gold] outline-none ${entry.status === 'paid' ? 'bg-[--color-success]/10 text-[--color-success]' :
+                                                            entry.status === 'approved' ? 'bg-[--color-accent-blue]/10 text-[--color-accent-blue]' :
+                                                                'bg-[--color-warning]/10 text-[--color-warning]'
+                                                            }`}
+                                                    >
+                                                        <option value="draft">Pending</option>
+                                                        <option value="approved">Approved</option>
+                                                        <option value="paid">Paid</option>
+                                                    </select>
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="ghost" size="sm" onClick={() => handleEditClick(entry)}>
+                                                            Edit
+                                                        </Button>
+                                                        <Button variant="ghost" size="sm" onClick={() => generatePayslip(entry.employee)}>
+                                                            <FileText className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr className="bg-[--color-bg-tertiary] border-t-2 border-[--color-border]">
+                                            <td className="px-4 py-3 font-semibold text-[--color-text-primary]">Total ({filteredPayroll.length} employees)</td>
+                                            <td colSpan={2} />
+                                            <td className="px-4 py-3 text-right font-semibold text-[--color-text-primary]">{formatCurrency(totals.basePay)}</td>
+                                            <td className="px-4 py-3 text-right font-semibold text-[--color-success]">+{formatCurrency(totals.overtimePay)}</td>
+                                            <td className="px-4 py-3 text-right font-semibold text-[--color-danger]">-{formatCurrency(totals.deductions)}</td>
+                                            <td className="px-4 py-3 text-right font-bold text-lg text-[--color-accent-gold]">{formatCurrency(totals.netPay)}</td>
+                                            <td colSpan={2} />
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </Card>
+                    )}
                 </>
             )}
 

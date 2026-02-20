@@ -244,7 +244,7 @@ export function TimeLeave() {
                 <MetricCard label="Absent Days" value={stats.absent} accentColor="danger" className="bg-danger/5 border-danger/10" />
                 <MetricCard label="Leave Days" value={stats.leave} accentColor="warning" className="bg-warning/5 border-warning/10" />
                 <MetricCard label="Half Days" value={stats.halfDay} accentColor="gold" className="glass-gold border-primary/10" />
-                <MetricCard label="Overtime Hours" value={`${stats.overtime} hrs`} accentColor="blue" className="bg-accent-blue/5 border-accent-blue/10" />
+                <MetricCard label="Overtime Hrs" value={`${stats.overtime} hrs`} accentColor="blue" className="bg-accent-blue/5 border-accent-blue/10 col-span-2 md:col-span-1" />
             </div>
 
             {/* Loading state */}
@@ -272,7 +272,7 @@ export function TimeLeave() {
                                             onClick={() => setSelectedStatus(status)}
                                             className={`
                                                 flex items-center gap-1.5 px-3 py-2 rounded-[--radius-md] text-sm font-medium
-                                                transition-all min-h-[40px] flex-1 sm:flex-none justify-center border-2
+                                                transition-all min-h-[44px] flex-1 sm:flex-none justify-center border-2
                                                 ${selectedStatus === status
                                                     ? `${statusColors[status]} border-[--color-text-primary] shadow-md font-bold`
                                                     : 'bg-[--color-bg-tertiary] border-[--color-border] text-[--color-text-muted] hover:bg-[--color-bg-elevated] hover:border-[--color-border-subtle]'
@@ -389,7 +389,7 @@ export function TimeLeave() {
                                         onClick={() => setSelectedStatus(status)}
                                         className={`
                                             flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                                            transition-all min-h-[32px] flex-1 sm:flex-none justify-center border-2
+                                            transition-all min-h-[44px] flex-1 sm:flex-none justify-center border-2
                                             ${selectedStatus === status
                                                 ? `${statusColors[status]} border-[--color-text-primary] shadow-md font-bold`
                                                 : 'bg-[--color-bg-tertiary] border-[--color-border] text-[--color-text-muted] hover:bg-[--color-bg-elevated] hover:border-[--color-border-subtle]'

@@ -77,20 +77,20 @@ export function Overview() {
                         Overview for {new Date(currentMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                     <Select
                         options={MONTHS}
                         value={currentMonth}
                         onChange={(e) => setCurrentMonth(e.target.value)}
-                        className="w-44"
+                        className="w-36 sm:w-44"
                     />
                     <Button variant="secondary" size="sm" onClick={() => navigate('/attendance')} className="glass-gold text-primary border-primary/30">
                         <Calendar className="w-4 h-4" />
-                        Mark Attendance
+                        <span className="hidden sm:inline">Mark Attendance</span>
                     </Button>
                     <Button variant="primary" size="sm" onClick={() => navigate('/people')} className="gold-gradient-bg text-black font-bold">
                         <Plus className="w-4 h-4" />
-                        Add Employee
+                        <span className="hidden sm:inline">Add Employee</span>
                     </Button>
                 </div>
             </div>

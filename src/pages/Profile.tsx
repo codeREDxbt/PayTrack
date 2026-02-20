@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { User, Mail, LogOut, Shield, Edit2 } from 'lucide-react';
+import { User, Mail, LogOut, Shield, Edit2, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { updateProfile } from 'firebase/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { Button, Card, CardHeader, CardTitle, CardContent, Modal, Input } from '../components/ui';
@@ -78,37 +79,37 @@ export function Profile() {
 
             {/* Profile Card */}
             <Card padding="lg">
-                <div className="flex items-start gap-6">
+                <div className="flex flex-col sm:flex-row items-start gap-6 overflow-hidden">
                     {/* Avatar */}
                     {user.photoURL ? (
                         <img
                             src={user.photoURL}
                             alt={user.displayName || 'User'}
-                            className="w-20 h-20 rounded-full border-2 border-[--color-accent-gold]"
+                            className="w-20 h-20 rounded-full border-2 border-[--color-accent-gold] flex-shrink-0"
                         />
                     ) : (
-                        <div className="w-20 h-20 rounded-full bg-[--color-accent-gold]/20 flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-full bg-[--color-accent-gold]/20 flex items-center justify-center flex-shrink-0">
                             <User className="w-10 h-10 text-[--color-accent-gold]" />
                         </div>
                     )}
 
                     {/* Info */}
-                    <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                            <div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
                                 <h2 className="text-2xl font-black uppercase tracking-widest text-[--color-text-primary]">
                                     {user.displayName || 'User'}
                                 </h2>
                                 <div className="flex items-center gap-2 mt-2 text-[--color-text-secondary] font-mono">
-                                    <Mail className="w-4 h-4" />
-                                    <span>{user.email}</span>
+                                    <Mail className="w-4 h-4 flex-shrink-0" />
+                                    <span className="break-all text-sm">{user.email}</span>
                                 </div>
                                 <div className="flex items-center gap-2 mt-2 text-[--color-text-muted] text-sm uppercase tracking-wider font-bold">
-                                    <Shield className="w-4 h-4" />
+                                    <Shield className="w-4 h-4 flex-shrink-0" />
                                     <span>Signed in with Google</span>
                                 </div>
                             </div>
-                            <Button variant="secondary" size="md" onClick={handleEditProfile} className="border-2 border-[--color-border]">
+                            <Button variant="secondary" size="md" onClick={handleEditProfile} className="border-2 border-[--color-border] flex-shrink-0">
                                 <Edit2 className="w-4 h-4" />
                                 Edit
                             </Button>
@@ -139,6 +140,26 @@ export function Profile() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Settings link - visible on mobile only (no Settings in BottomNav) */}
+            <Link to="/settings" className="block sm:hidden">
+                <Card padding="md">
+                    <CardContent>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Settings className="w-5 h-5 text-[--color-text-muted]" />
+                                <div>
+                                    <h3 className="font-black uppercase tracking-wider text-[--color-text-primary]">Settings</h3>
+                                    <p className="text-xs uppercase tracking-widest font-bold text-[--color-text-muted] mt-0.5">
+                                        App configuration &amp; preferences
+                                    </p>
+                                </div>
+                            </div>
+                            <span className="text-[--color-text-muted] text-lg">›</span>
+                        </div>
+                    </CardContent>
+                </Card>
+            </Link>
 
             {/* Sign Out */}
             <Card padding="md">

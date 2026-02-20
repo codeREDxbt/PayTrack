@@ -181,7 +181,7 @@ export function People() {
                 <div className="flex gap-3">
                     <Button variant="secondary" size="sm" onClick={handleExportCSV} className="border-2 border-[--color-border]">
                         <Download className="w-4 h-4" />
-                        Export
+                        <span className="hidden sm:inline">Export</span>
                     </Button>
                     <Button variant="primary" size="sm" onClick={handleAddEmployee} className="hidden sm:flex border-2 border-[--color-border]">
                         <Plus className="w-4 h-4" />
@@ -193,16 +193,15 @@ export function People() {
             {/* Filters Bar */}
             <Card padding="md">
                 <div className="flex flex-col gap-4">
-                    <div className="flex items-center gap-4">
-                        {/* Search */}
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--color-text-muted]" />
-                            <input
-                                type="text"
-                                placeholder="Search by name or role..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="
+                    {/* Search - full width */}
+                    <div className="relative w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--color-text-muted]" />
+                        <input
+                            type="text"
+                            placeholder="Search by name or role..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="
                   w-full h-9 pl-10 pr-4
                   bg-[--color-bg-tertiary]
                   border border-[--color-border]
@@ -211,30 +210,32 @@ export function People() {
                   placeholder:text-[--color-text-muted]
                   focus:outline-none focus:ring-2 focus:ring-[--color-focus]
                 "
+                        />
+                    </div>
+
+                    {/* Quick Filters - stack on mobile */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div className="grid grid-cols-2 sm:flex gap-2 flex-1">
+                            <Select
+                                options={[{ value: '', label: 'All Departments' }, ...departments]}
+                                value={selectedDepartment}
+                                onChange={(e) => setSelectedDepartment(e.target.value)}
+                                className="w-full sm:w-44"
+                            />
+                            <Select
+                                options={[
+                                    { value: '', label: 'All Status' },
+                                    { value: 'active', label: 'Active' },
+                                    { value: 'inactive', label: 'Inactive' },
+                                ]}
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value)}
+                                className="w-full sm:w-36"
                             />
                         </div>
-
-                        {/* Quick Filters */}
-                        <Select
-                            options={[{ value: '', label: 'All Departments' }, ...departments]}
-                            value={selectedDepartment}
-                            onChange={(e) => setSelectedDepartment(e.target.value)}
-                            className="w-44"
-                        />
-                        <Select
-                            options={[
-                                { value: '', label: 'All Status' },
-                                { value: 'active', label: 'Active' },
-                                { value: 'inactive', label: 'Inactive' },
-                            ]}
-                            value={selectedStatus}
-                            onChange={(e) => setSelectedStatus(e.target.value)}
-                            className="w-36"
-                        />
-
-                        <Button variant="ghost" size="sm" onClick={() => setShowFilters(!showFilters)}>
+                        <Button variant="ghost" size="sm" onClick={() => setShowFilters(!showFilters)} className="justify-center">
                             <Filter className="w-4 h-4" />
-                            More Filters
+                            <span className="hidden sm:inline">More Filters</span>
                         </Button>
                     </div>
 
@@ -469,6 +470,17 @@ export function People() {
                     </div>
                 )}
             </Drawer>
+
+            {/* Mobile FAB for Add Employee */}
+            {isMobile && (
+                <button
+                    onClick={handleAddEmployee}
+                    aria-label="Add Employee"
+                    className="fixed bottom-24 right-4 z-40 w-14 h-14 flex items-center justify-center bg-[--color-accent-gold] text-[--color-bg-primary] shadow-lg border-2 border-[--color-text-primary] hover:bg-[--color-accent-gold-hover] transition-colors"
+                >
+                    <Plus className="w-6 h-6" />
+                </button>
+            )}
 
             {/* Add/Edit Employee Modal */}
             <Modal
