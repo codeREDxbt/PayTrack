@@ -117,7 +117,7 @@ export function Sidebar({ collapsed = false, onCollapse }: SidebarProps) {
                         PAYTRACK
                     </p>
                     <p className="text-[9px] text-[--color-text-muted]/70 mt-1 uppercase tracking-widest">
-                        v1.3 • codeRED LUXE
+                        v1.4 • codeRED LUXE
                     </p>
                 </div>
             )}

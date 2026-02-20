@@ -1,5 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import {
     Plus,
     Search,
@@ -7,6 +10,7 @@ import {
     Edit2,
     Eye,
     Trash2,
+    Download,
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import {
@@ -22,7 +26,7 @@ import { EmployeeCard } from '../components/EmployeeCard';
 import { useIsMobile } from '../hooks/useResponsive';
 import type { Employee, EmployeeFormData, FilterPill } from '../lib/types';
 import { formatCurrency } from '../utils/salaryCalculator';
-import { formatDateReadable } from '../lib/utils';
+import { formatDateReadable, exportToCSV } from '../lib/utils';
 
 // ================================
 // People Directory
@@ -147,6 +151,21 @@ export function People() {
         }
     };
 
+    const handleExportCSV = () => {
+        const exportData = filteredEmployees.map(emp => ({
+            'Employee ID': emp.id,
+            'Name': emp.name,
+            'Role': emp.role,
+            'Department': emp.department,
+            'Monthly Pay': emp.monthlyPay,
+            'Join Date': formatDateReadable(emp.joinDate),
+            'Status': emp.status,
+            'Email': emp.email || '',
+            'Phone': emp.phone || ''
+        }));
+        exportToCSV(exportData, `Employees_Export_${new Date().toISOString().split('T')[0]}`);
+    };
+
     return (
         <div className="space-y-6">
             {/* Page Header */}
@@ -159,10 +178,16 @@ export function People() {
                         Manage your {sortedEmployees.length} employees
                     </p>
                 </div>
-                <Button variant="primary" size="sm" onClick={handleAddEmployee}>
-                    <Plus className="w-4 h-4" />
-                    Add Employee
-                </Button>
+                <div className="flex gap-3">
+                    <Button variant="secondary" size="sm" onClick={handleExportCSV} className="border-2 border-[--color-border]">
+                        <Download className="w-4 h-4" />
+                        Export
+                    </Button>
+                    <Button variant="primary" size="sm" onClick={handleAddEmployee} className="hidden sm:flex border-2 border-[--color-border]">
+                        <Plus className="w-4 h-4" />
+                        Add Employee
+                    </Button>
+                </div>
             </div>
 
             {/* Filters Bar */}
@@ -462,6 +487,20 @@ export function People() {
     );
 }
 
+// Employee Form Schema
+const employeeSchema = z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    role: z.string().min(2, "Role must be at least 2 characters"),
+    department: z.string().min(1, "Department is required"),
+    monthlyPay: z.coerce.number().min(1, "Monthly pay must be greater than 0"),
+    joinDate: z.string().min(1, "Join date is required"),
+    email: z.string().optional(),
+    phone: z.string().optional(),
+    notes: z.string().optional(),
+});
+
+type EmployeeFormValues = z.infer<typeof employeeSchema>;
+
 // Employee Form Component
 interface EmployeeFormProps {
     employee?: Employee | null;
@@ -470,55 +509,56 @@ interface EmployeeFormProps {
 }
 
 function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) {
-    const [formData, setFormData] = useState<EmployeeFormData>({
-        name: employee?.name || '',
-        role: employee?.role || '',
-        department: employee?.department || '',
-        monthlyPay: employee?.monthlyPay || 0,
-        joinDate: employee?.joinDate || new Date().toISOString().split('T')[0],
+    const { register, handleSubmit, formState: { errors } } = useForm<EmployeeFormValues>({
+        resolver: zodResolver(employeeSchema) as any,
+        defaultValues: {
+            name: employee?.name || '',
+            role: employee?.role || '',
+            department: employee?.department || '',
+            monthlyPay: employee?.monthlyPay || 0,
+            joinDate: employee?.joinDate || new Date().toISOString().split('T')[0],
+            email: employee?.email || '',
+            phone: employee?.phone || '',
+            notes: employee?.notes || '',
+        }
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave(formData);
+    const onSubmit = (data: EmployeeFormValues) => {
+        onSave(data as EmployeeFormData);
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4">
             <Input
                 label="Full Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
+                error={errors.name?.message}
+                {...register('name')}
             />
             <div className="grid grid-cols-2 gap-4">
                 <Input
                     label="Role"
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    required
+                    error={errors.role?.message}
+                    {...register('role')}
                 />
                 <Select
                     label="Department"
                     options={departments}
-                    value={formData.department.toLowerCase()}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    error={errors.department?.message}
+                    {...register('department')}
                 />
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <Input
                     label="Monthly Pay (₹)"
                     type="number"
-                    value={formData.monthlyPay}
-                    onChange={(e) => setFormData({ ...formData, monthlyPay: Number(e.target.value) })}
-                    required
+                    error={errors.monthlyPay?.message}
+                    {...register('monthlyPay')}
                 />
                 <Input
                     label="Join Date"
                     type="date"
-                    value={formData.joinDate}
-                    onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
-                    required
+                    error={errors.joinDate?.message}
+                    {...register('joinDate')}
                 />
             </div>
             <div className="flex gap-3 pt-4">

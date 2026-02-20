@@ -32,11 +32,11 @@ type AttendanceStatus = 'present' | 'absent' | 'leave' | 'holiday' | 'half-day';
 type ViewMode = 'calendar' | 'bulk';
 
 const statusColors: Record<AttendanceStatus, string> = {
-    present: 'bg-[--color-success] text-white',
-    absent: 'bg-[--color-danger] text-white',
-    leave: 'bg-[--color-warning] text-[--color-text-inverse]',
-    holiday: 'bg-[--color-accent-blue] text-white',
-    'half-day': 'bg-[--color-accent-gold] text-[--color-text-inverse]',
+    present: 'bg-success text-white',
+    absent: 'bg-danger text-white',
+    leave: 'bg-warning text-black',
+    holiday: 'bg-accent-blue text-white',
+    'half-day': 'bg-accent-gold text-black',
 };
 
 const statusIcons: Record<AttendanceStatus, React.ReactNode> = {

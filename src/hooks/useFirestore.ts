@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
     collection,
     doc,
+    getDoc,
     onSnapshot,
     addDoc,
     updateDoc,
@@ -16,6 +17,26 @@ import {
 import { db, COLLECTIONS } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Employee, AttendanceRecord, PayrollEntry } from '../lib/types';
+
+// ================================
+// Security Helpers
+// ================================
+
+/**
+ * Verifies that a Firestore document is owned by the given userId.
+ * Throws if the document doesn't exist or belongs to a different user.
+ * This is defense-in-depth — Firestore rules are the true enforcement layer.
+ */
+async function assertOwnership(collectionName: string, docId: string, userId: string): Promise<void> {
+    const docRef = doc(db, collectionName, docId);
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) {
+        throw new Error('Document not found.');
+    }
+    if (snapshot.data()?.userId !== userId) {
+        throw new Error('Permission denied: you do not own this document.');
+    }
+}
 
 // ================================
 // Firestore Hooks
@@ -137,6 +158,9 @@ export function useEmployees() {
     };
 
     const updateEmployee = async (id: string, updates: Partial<Employee>) => {
+        if (!user) throw new Error('Not authenticated');
+        // ⚠️ Verify ownership before writing (defense-in-depth)
+        await assertOwnership(COLLECTIONS.EMPLOYEES, id, user.uid);
         const docRef = doc(db, COLLECTIONS.EMPLOYEES, id);
         await updateDoc(docRef, {
             ...updates,
@@ -145,7 +169,11 @@ export function useEmployees() {
     };
 
     const deleteEmployee = async (id: string) => {
+        if (!user) throw new Error('Not authenticated');
         try {
+            // ⚠️ Verify ownership before deleting (defense-in-depth)
+            await assertOwnership(COLLECTIONS.EMPLOYEES, id, user.uid);
+
             // 1. Delete employee document
             const docRef = doc(db, COLLECTIONS.EMPLOYEES, id);
             await deleteDoc(docRef);
@@ -244,6 +272,9 @@ export function useAttendance(month?: string) {
     };
 
     const updateAttendance = async (id: string, updates: Partial<AttendanceRecord>) => {
+        if (!user) throw new Error('Not authenticated');
+        // ⚠️ Verify ownership before writing (defense-in-depth)
+        await assertOwnership(COLLECTIONS.ATTENDANCE, id, user.uid);
         const docRef = doc(db, COLLECTIONS.ATTENDANCE, id);
         await updateDoc(docRef, {
             ...updates,
@@ -312,6 +343,9 @@ export function usePayroll(month?: string) {
     };
 
     const updatePayrollEntry = async (id: string, updates: Partial<PayrollEntry>) => {
+        if (!user) throw new Error('Not authenticated');
+        // ⚠️ Verify ownership before writing (defense-in-depth)
+        await assertOwnership(COLLECTIONS.PAYROLL, id, user.uid);
         const docRef = doc(db, COLLECTIONS.PAYROLL, id);
         await updateDoc(docRef, updates);
     };

@@ -68,10 +68,10 @@ export function Profile() {
         <div className="space-y-6 max-w-2xl">
             {/* Page Header */}
             <div>
-                <h1 className="text-2xl font-semibold text-[--color-text-primary]">
+                <h1 className="text-4xl font-black uppercase tracking-widest text-[--color-text-primary]">
                     Profile
                 </h1>
-                <p className="text-[--color-text-secondary] mt-1">
+                <p className="text-[--color-text-secondary] mt-1 text-xs font-bold uppercase tracking-widest">
                     Your account information
                 </p>
             </div>
@@ -96,19 +96,19 @@ export function Profile() {
                     <div className="flex-1">
                         <div className="flex items-start justify-between">
                             <div>
-                                <h2 className="text-xl font-semibold text-[--color-text-primary]">
+                                <h2 className="text-2xl font-black uppercase tracking-widest text-[--color-text-primary]">
                                     {user.displayName || 'User'}
                                 </h2>
-                                <div className="flex items-center gap-2 mt-2 text-[--color-text-secondary]">
+                                <div className="flex items-center gap-2 mt-2 text-[--color-text-secondary] font-mono">
                                     <Mail className="w-4 h-4" />
                                     <span>{user.email}</span>
                                 </div>
-                                <div className="flex items-center gap-2 mt-2 text-[--color-text-muted] text-sm">
+                                <div className="flex items-center gap-2 mt-2 text-[--color-text-muted] text-sm uppercase tracking-wider font-bold">
                                     <Shield className="w-4 h-4" />
                                     <span>Signed in with Google</span>
                                 </div>
                             </div>
-                            <Button variant="secondary" size="sm" onClick={handleEditProfile}>
+                            <Button variant="secondary" size="md" onClick={handleEditProfile} className="border-2 border-[--color-border]">
                                 <Edit2 className="w-4 h-4" />
                                 Edit
                             </Button>
@@ -145,12 +145,12 @@ export function Profile() {
                 <CardContent>
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="font-medium text-[--color-text-primary]">Sign Out</h3>
-                            <p className="text-sm text-[--color-text-muted]">
+                            <h3 className="font-black uppercase tracking-wider text-[--color-text-primary]">Sign Out</h3>
+                            <p className="text-xs uppercase tracking-widest font-bold text-[--color-text-muted] mt-1">
                                 Sign out of your account on this device
                             </p>
                         </div>
-                        <Button variant="danger" onClick={handleSignOut}>
+                        <Button variant="danger" onClick={handleSignOut} className="border-2 border-[--color-border]">
                             <LogOut className="w-4 h-4" />
                             Sign Out
                         </Button>

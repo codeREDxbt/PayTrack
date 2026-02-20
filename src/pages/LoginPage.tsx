@@ -5,11 +5,11 @@ import { Logo } from '../components/Logo';
 
 // ================================
 // Login Page
-// Premium dark login with Google sign-in
+// Premium dark login with Google sign-in + rate limiting UI
 // ================================
 
 export function LoginPage() {
-    const { user, loading, error, signInWithGoogle } = useAuth();
+    const { user, loading, error, rateLimited, rateLimitSecondsLeft, signInWithGoogle } = useAuth();
     const navigate = useNavigate();
 
     // Redirect if already logged in
@@ -18,12 +18,12 @@ export function LoginPage() {
     }
 
     const handleSignIn = async () => {
+        if (rateLimited) return;
         try {
             await signInWithGoogle();
-            // After successful sign-in, navigate to home
             navigate('/', { replace: true });
-        } catch (err) {
-            console.error('Sign in failed:', err);
+        } catch {
+            // Errors are handled and sanitized in AuthContext
         }
     };
 
@@ -50,7 +50,7 @@ export function LoginPage() {
 
                     {/* Error Message */}
                     {error && (
-                        <div className="mb-4 p-3 bg-[--color-danger]/10 border border-[--color-danger]/20 rounded-lg">
+                        <div className="mb-4 p-3 bg-[--color-danger]/10 border border-[--color-danger]/20 rounded-lg" role="alert">
                             <p className="text-sm text-[--color-danger]">{error}</p>
                         </div>
                     )}
@@ -60,9 +60,11 @@ export function LoginPage() {
                         variant="primary"
                         className="w-full h-12 text-base font-medium"
                         onClick={handleSignIn}
-                        disabled={loading}
+                        disabled={loading || rateLimited}
                     >
-                        {loading ? (
+                        {rateLimited ? (
+                            <span>Too many attempts. Wait {rateLimitSecondsLeft}s&hellip;</span>
+                        ) : loading ? (
                             <div className="flex items-center gap-3">
                                 <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                                 <span>Signing in...</span>
@@ -111,7 +113,7 @@ export function LoginPage() {
 
                 {/* Footer */}
                 <footer className="text-xs text-[--color-text-muted] text-center mt-6">
-                    © 2026 PayTrack • Employer Command Center
+                    &copy; 2026 PayTrack &bull; Employer Command Center
                 </footer>
             </div>
         </div>

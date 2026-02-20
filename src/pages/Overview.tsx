@@ -13,6 +13,7 @@ import { useApp } from '../contexts/AppContext';
 import { MetricCard, Card, CardHeader, CardTitle, CardContent, Button, Select } from '../components/ui';
 import { formatCurrency } from '../utils/salaryCalculator';
 import { formatDate } from '../lib/utils';
+import { PayrollTrendChart } from '../components/PayrollTrendChart';
 
 // ================================
 // Overview Dashboard
@@ -134,7 +135,7 @@ export function Overview() {
                     </div>
 
                     {/* Empty state if no employees */}
-                    {employees.length === 0 && (
+                    {employees.length === 0 ? (
                         <Card padding="lg">
                             <div className="text-center py-8">
                                 <Users className="w-12 h-12 mx-auto text-[--color-text-muted] mb-4" />
@@ -150,43 +151,48 @@ export function Overview() {
                                 </Button>
                             </div>
                         </Card>
-                    )}
-
-                    {/* Quick Actions */}
-                    {employees.length > 0 && (
-                        <Card padding="md">
-                            <CardHeader>
-                                <CardTitle>Quick Actions</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <Button
-                                        variant="secondary"
-                                        className="justify-center h-auto py-3"
-                                        onClick={() => navigate('/attendance')}
-                                    >
-                                        <Calendar className="w-4 h-4" />
-                                        Mark Attendance
-                                    </Button>
-                                    <Button
-                                        variant="secondary"
-                                        className="justify-center h-auto py-3"
-                                        onClick={() => navigate('/payroll')}
-                                    >
-                                        <Wallet className="w-4 h-4" />
-                                        Generate Payroll
-                                    </Button>
-                                    <Button
-                                        variant="secondary"
-                                        className="justify-center h-auto py-3"
-                                        onClick={() => navigate('/people')}
-                                    >
-                                        <Users className="w-4 h-4" />
-                                        Manage Employees
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2">
+                                <PayrollTrendChart />
+                            </div>
+                            <div className="lg:col-span-1">
+                                {/* Quick Actions */}
+                                <Card padding="md" className="h-full">
+                                    <CardHeader>
+                                        <CardTitle>Quick Actions</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex flex-col gap-4">
+                                            <Button
+                                                variant="secondary"
+                                                className="justify-start h-auto py-3 border-2 border-[--color-border]"
+                                                onClick={() => navigate('/attendance')}
+                                            >
+                                                <Calendar className="w-4 h-4" />
+                                                Mark Attendance
+                                            </Button>
+                                            <Button
+                                                variant="secondary"
+                                                className="justify-start h-auto py-3 border-2 border-[--color-border]"
+                                                onClick={() => navigate('/payroll')}
+                                            >
+                                                <Wallet className="w-4 h-4" />
+                                                Generate Payroll
+                                            </Button>
+                                            <Button
+                                                variant="secondary"
+                                                className="justify-start h-auto py-3 border-2 border-[--color-border]"
+                                                onClick={() => navigate('/people')}
+                                            >
+                                                <Users className="w-4 h-4" />
+                                                Manage Employees
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
                     )}
                 </>
             )}
