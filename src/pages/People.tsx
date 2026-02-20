@@ -152,10 +152,10 @@ export function People() {
             {/* Page Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold text-[--color-text-primary]">
+                    <h1 className="text-4xl font-black uppercase tracking-widest text-[--color-text-primary]">
                         People
                     </h1>
-                    <p className="text-[--color-text-secondary] mt-1">
+                    <p className="text-[--color-text-secondary] mt-1 font-bold tracking-widest uppercase text-xs">
                         Manage your {sortedEmployees.length} employees
                     </p>
                 </div>
@@ -249,7 +249,7 @@ export function People() {
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-[--color-border]">
+                                <tr className="border-b-2 border-[--color-border] bg-[--color-bg-secondary]">
                                     <th scope="col" className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
                                         Employee
                                     </th>
@@ -270,7 +270,7 @@ export function People() {
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-[--color-border]">
+                            <tbody className="divide-y-2 divide-[--color-border]">
                                 {filteredEmployees.map((employee) => (
                                     <tr
                                         key={employee.id}

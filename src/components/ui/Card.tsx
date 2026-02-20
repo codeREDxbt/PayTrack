@@ -13,22 +13,21 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 
 const Card = forwardRef<HTMLDivElement, CardProps>(
     ({ className, variant = 'default', padding = 'md', children, ...props }, ref) => {
-        const baseStyles = 'rounded-[--radius-lg] transition-all duration-[--transition-normal]';
+        const baseStyles = 'rounded-[--radius-lg] transition-all duration-[--transition-normal] border-2';
 
         const variants = {
             default: `
         bg-[--color-bg-secondary]
-        border border-[--color-border]
+        border-[--color-border]
       `,
             elevated: `
         bg-[--color-bg-tertiary]
-        border border-[--color-border]
+        border-[--color-border]
         shadow-[--shadow-md]
-        hover:shadow-[--shadow-lg] hover:border-[--color-border-subtle]
+        hover:shadow-[--shadow-lg] hover:translate-x-[-2px] hover:translate-y-[-2px]
       `,
             glass: `
         glass
-        shadow-[--shadow-lg]
       `,
         };
 
@@ -70,7 +69,7 @@ const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadingEleme
     ({ className, ...props }, ref) => (
         <h3
             ref={ref}
-            className={cn('text-lg font-semibold text-[--color-text-primary]', className)}
+            className={cn('text-lg font-bold uppercase tracking-wider text-[--color-text-primary]', className)}
             {...props}
         />
     )
@@ -102,7 +101,7 @@ const CardFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
     ({ className, ...props }, ref) => (
         <div
             ref={ref}
-            className={cn('flex items-center gap-2 pt-4 border-t border-[--color-border]', className)}
+            className={cn('flex items-center gap-2 pt-4 border-t-2 border-[--color-border]', className)}
             {...props}
         />
     )

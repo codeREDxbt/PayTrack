@@ -40,35 +40,38 @@
   /* Focus Ring */
   --color-focus: #D8B04C;
 
-  /* Glassmorphism */
-  --glass-bg: rgba(22, 23, 26, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  /* Shadow Color based on mode */
+  --shadow-color: #D8B04C;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  /* Glassmorphism -> Solid Brutalist */
+  --glass-bg: var(--color-bg-elevated);
+  --glass-border: var(--color-border);
+
+  /* NeoPop Shadows (Solid Offset) */
+  --shadow-sm: 2px 2px 0px 0px var(--shadow-color);
+  --shadow-md: 4px 4px 0px 0px var(--shadow-color);
+  --shadow-lg: 6px 6px 0px 0px var(--shadow-color);
+  --shadow-xl: 8px 8px 0px 0px var(--shadow-color);
 
   /* Spacing */
   --spacing-page: 24px;
   --spacing-section: 20px;
   --spacing-card: 16px;
 
-  /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* Border Radius - Brutalist (0px) */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
 
   /* Typography */
   --font-sans: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-  /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* Transitions - Snappy for NeoPop */
+  --transition-fast: 100ms ease-out;
+  --transition-normal: 150ms ease-out;
+  --transition-slow: 200ms ease-out;
 }
 
 /* ================================
@@ -86,16 +89,18 @@
   --color-text-secondary: #525252 !important;
   --color-text-muted: #737373 !important;
   --color-text-inverse: #FFFFFF !important;
-  --glass-bg: rgba(255, 255, 255, 0.85) !important;
-  --glass-border: rgba(0, 0, 0, 0.08) !important;
+  --glass-bg: #FFFFFF !important;
+  --glass-border: #0F0F10 !important;
+  --shadow-color: #0F0F10 !important;
 
   /* Status colors - darker for contrast */
   --color-success: #16a34a !important;
   --color-danger: #dc2626 !important;
   --color-warning: #ca8a04 !important;
   --color-accent-blue: #2563eb !important;
-  --color-accent-gold: #B7860B !important;
-  --color-accent-gold-hover: #D2691E !important;
+  --color-accent-gold: #0F0F10 !important;
+  /* In light mode, gold feels off for brutalist blocks, use black */
+  --color-accent-gold-hover: #333333 !important;
 }
 
 /* ================================
@@ -171,17 +176,16 @@ body {
    ================================ */
 
 .glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-border);
+  box-shadow: var(--shadow-md);
 }
 
 .glass-gold {
-  background: rgba(216, 176, 75, 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(216, 176, 75, 0.3);
+  background: var(--color-accent-gold);
+  color: var(--color-bg-primary);
+  border: 2px solid var(--color-text-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .gold-gradient-text {

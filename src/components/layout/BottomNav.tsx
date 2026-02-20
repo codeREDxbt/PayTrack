@@ -32,7 +32,7 @@ const NAV_ITEMS: NavItem[] = [
 export function BottomNav() {
     return (
         <nav
-            className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-[--color-border] safe-area-bottom shadow-[0_-4px_24px_rgba(0,0,0,0.4)]"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[--color-bg-secondary] border-t-2 border-[--color-border]"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
             <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
@@ -43,10 +43,10 @@ export function BottomNav() {
                         className={({ isActive }) => `
                             flex flex-col items-center justify-center gap-1
                             min-w-[56px] h-14 px-2
-                            rounded-xl transition-all duration-300
+                            rounded-none transition-all duration-300
                             ${isActive
-                                ? 'text-[--color-accent-gold] scale-110 drop-shadow-[0_0_8px_rgba(216,176,76,0.5)]'
-                                : 'text-[--color-text-muted] opacity-60 hover:opacity-100 hover:scale-105'
+                                ? 'text-[--color-text-primary] border-t-2 border-[--color-text-primary] -translate-y-1'
+                                : 'text-[--color-text-muted] opacity-60 hover:opacity-100 hover:-translate-y-0.5 hover:border-t-2 border-transparent'
                             }
                         `}
                     >
@@ -59,8 +59,8 @@ export function BottomNav() {
                                     )}
                                 />
                                 <span className={cn(
-                                    "text-[10px] font-bold uppercase tracking-widest",
-                                    isActive ? "gold-gradient-text" : "text-current"
+                                    "text-[10px] font-black uppercase tracking-widest",
+                                    isActive ? "text-[--color-text-primary]" : "text-current"
                                 )}>
                                     {item.label}
                                 </span>

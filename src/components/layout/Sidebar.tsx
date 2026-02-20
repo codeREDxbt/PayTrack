@@ -42,7 +42,7 @@ export function Sidebar({ collapsed = false, onCollapse }: SidebarProps) {
                 `
           fixed left-0 top-0 z-30 h-screen
           bg-[--color-bg-secondary]
-          border-r border-[--color-border]
+          border-r-2 border-[--color-border]
           transition-all duration-[--transition-normal]
           flex flex-col
         `,
@@ -50,7 +50,7 @@ export function Sidebar({ collapsed = false, onCollapse }: SidebarProps) {
             )}
         >
             {/* Logo Area */}
-            <div className="h-24 flex items-center justify-between px-4 border-b border-[--color-border]">
+            <div className="h-24 flex items-center justify-between px-4 border-b-2 border-[--color-border]">
                 {!collapsed && (
                     <div className="px-2">
                         <Logo size="lg" />
@@ -88,14 +88,14 @@ export function Sidebar({ collapsed = false, onCollapse }: SidebarProps) {
                                     className={cn(
                                         `
                       flex items-center gap-3 px-3 py-2.5
-                      rounded-[--radius-md]
-                      text-sm font-medium
+                      rounded-none border-2 border-transparent
+                      text-sm font-bold uppercase tracking-wider
                       transition-all duration-[--transition-fast]
                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-focus]
                     `,
                                         isActive
-                                            ? 'bg-[--color-accent-gold]/10 text-[--color-accent-gold]'
-                                            : 'text-[--color-text-secondary] hover:text-[--color-text-primary] hover:bg-[--color-bg-tertiary]',
+                                            ? 'bg-[--color-text-primary] text-[--color-bg-primary] border-[--color-text-primary] shadow-[--shadow-sm] translate-x-1'
+                                            : 'text-[--color-text-secondary] hover:text-[--color-text-primary] hover:bg-[--color-bg-tertiary] hover:border-[--color-border]',
                                         collapsed && 'justify-center'
                                     )}
                                     aria-current={isActive ? 'page' : undefined}
@@ -112,8 +112,8 @@ export function Sidebar({ collapsed = false, onCollapse }: SidebarProps) {
 
             {/* Footer */}
             {!collapsed && (
-                <div className="p-4 border-t border-[--color-border]">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.3em] gold-gradient-text">
+                <div className="p-4 border-t-2 border-[--color-border] bg-[--color-bg-tertiary]">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[--color-text-primary]">
                         PAYTRACK
                     </p>
                     <p className="text-[9px] text-[--color-text-muted]/70 mt-1 uppercase tracking-widest">

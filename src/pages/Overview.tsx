@@ -69,10 +69,10 @@ export function Overview() {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-light uppercase tracking-widest gold-gradient-text">
+                    <h1 className="text-4xl font-black uppercase tracking-widest text-[--color-text-primary]">
                         Dashboard
                     </h1>
-                    <p className="text-[--color-text-secondary] mt-1 text-xs uppercase tracking-widest opacity-60">
+                    <p className="text-[--color-text-secondary] mt-1 text-xs font-bold uppercase tracking-widest">
                         Overview for {new Date(currentMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                     </p>
                 </div>

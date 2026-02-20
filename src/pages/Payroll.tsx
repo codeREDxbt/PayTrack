@@ -314,8 +314,8 @@ export function Payroll() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-light uppercase tracking-widest gold-gradient-text">Payroll</h1>
-                    <p className="text-[--color-text-secondary] mt-1 text-xs uppercase tracking-widest opacity-60">Precision Calculations. Professional Payouts.</p>
+                    <h1 className="text-4xl font-black uppercase tracking-widest text-[--color-text-primary]">Payroll</h1>
+                    <p className="text-[--color-text-secondary] mt-1 text-xs font-bold uppercase tracking-widest">Precision Calculations. Professional Payouts.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button variant="secondary" size="sm" onClick={handleExport} className="glass border-primary/20">
@@ -406,7 +406,7 @@ export function Payroll() {
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-[--color-border]">
+                                    <tr className="border-b-2 border-[--color-border] bg-[--color-bg-secondary]">
                                         <th className="text-left text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Employee</th>
                                         <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Days</th>
                                         <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">OT Hrs</th>
@@ -418,7 +418,7 @@ export function Payroll() {
                                         <th className="text-right text-xs font-medium text-[--color-text-muted] uppercase px-4 py-3">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-[--color-border]">
+                                <tbody className="divide-y-2 divide-[--color-border]">
                                     {filteredPayroll.map((entry) => (
                                         <tr key={entry.employee.id} className="hover:bg-[--color-bg-tertiary] transition-colors">
                                             <td className="px-4 py-3">

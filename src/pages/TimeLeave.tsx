@@ -207,29 +207,29 @@ export function TimeLeave() {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-light uppercase tracking-widest gold-gradient-text">
+                    <h1 className="text-4xl font-black uppercase tracking-widest text-[--color-text-primary]">
                         Time & Leave
                     </h1>
-                    <p className="text-[--color-text-secondary] mt-1 text-xs uppercase tracking-widest opacity-60">
+                    <p className="text-[--color-text-secondary] mt-1 text-xs font-bold uppercase tracking-widest">
                         Precision Tracking. Professional Growth.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setViewMode('bulk')}
-                        className={`px-3 py-1.5 rounded-l-[--radius-md] text-sm font-medium transition-colors ${viewMode === 'bulk'
-                            ? 'bg-[--color-accent-gold] text-[--color-text-inverse]'
-                            : 'bg-[--color-bg-tertiary] text-[--color-text-muted]'
+                        className={`px-4 py-2 border-2 border-[--color-border] border-r-0 text-sm font-bold uppercase tracking-wider transition-all ${viewMode === 'bulk'
+                            ? 'bg-[--color-text-primary] text-[--color-bg-primary]'
+                            : 'bg-[--color-bg-tertiary] text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
                             }`}
                     >
-                        <Users className="w-4 h-4 inline mr-1" />
+                        <Users className="w-4 h-4 inline mr-2" />
                         Bulk
                     </button>
                     <button
                         onClick={() => setViewMode('calendar')}
-                        className={`px-3 py-1.5 rounded-r-[--radius-md] text-sm font-medium transition-colors ${viewMode === 'calendar'
-                            ? 'bg-[--color-accent-gold] text-[--color-text-inverse]'
-                            : 'bg-[--color-bg-tertiary] text-[--color-text-muted]'
+                        className={`px-4 py-2 border-2 border-[--color-border] text-sm font-bold uppercase tracking-wider transition-all ${viewMode === 'calendar'
+                            ? 'bg-[--color-text-primary] text-[--color-bg-primary]'
+                            : 'bg-[--color-bg-tertiary] text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
                             }`}
                     >
                         <CalendarIcon className="w-4 h-4 inline mr-1" />
@@ -263,7 +263,7 @@ export function TimeLeave() {
                                     type="date"
                                     value={bulkDate}
                                     onChange={(e) => setBulkDate(e.target.value)}
-                                    className="h-10 px-3 bg-[--color-bg-tertiary] border border-[--color-border] rounded-[--radius-md] text-[--color-text-primary] w-full sm:w-auto"
+                                    className="h-10 px-3 bg-[--color-bg-tertiary] border-2 border-[--color-border] rounded-none text-[--color-text-primary] w-full sm:w-auto font-bold focus:border-[--color-focus] outline-none"
                                 />
                                 <div className="flex items-center gap-2 flex-wrap">
                                     {(['present', 'absent', 'leave', 'half-day'] as AttendanceStatus[]).map((status) => (
@@ -458,12 +458,12 @@ export function TimeLeave() {
                                     onClick={() => canClick && handleDayClick(item.date)}
                                     disabled={!canClick && selectedEmployeeId !== 'all'}
                                     className={`
-                                        h-11 sm:h-14 flex flex-col items-center justify-start py-1 rounded-[--radius-md]
-                                        transition-all text-xs
+                                        h-11 sm:h-14 flex flex-col items-center justify-start py-1 border-2 border-transparent
+                                        transition-all text-xs font-bold uppercase
                                         ${!item.day ? 'cursor-default' : ''}
-                                        ${canClick ? 'cursor-pointer hover:ring-2 hover:ring-[--color-focus]' : ''}
-                                        ${isToday ? 'ring-2 ring-[--color-accent-gold] z-10' : ''}
-                                        ${record ? statusColors[record.status] : item.day ? 'bg-[--color-bg-tertiary]' : ''}
+                                        ${canClick ? 'cursor-pointer hover:border-[--color-text-primary] hover:-translate-y-1' : ''}
+                                        ${isToday ? 'border-[--color-accent-gold] z-10 shadow-[--shadow-sm]' : ''}
+                                        ${record ? statusColors[record.status] + ' border-[--color-text-primary] shadow-[--shadow-sm]' : item.day ? 'bg-[--color-bg-tertiary] border-[--color-border]' : ''}
                                         ${isFuture ? 'opacity-40' : ''}
                                         disabled:cursor-default
                                     `}

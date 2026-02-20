@@ -28,7 +28,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 {label && (
                     <label
                         htmlFor={selectId}
-                        className="text-sm font-medium text-[--color-text-secondary]"
+                        className="text-sm font-bold uppercase tracking-widest text-[--color-text-secondary]"
                     >
                         {label}
                     </label>
@@ -42,11 +42,11 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 w-full h-10 px-3 pr-10
                 appearance-none
                 bg-[--color-bg-tertiary]
-                border border-[--color-border]
+                border-2 border-[--color-border]
                 rounded-[--radius-md]
-                text-[--color-text-primary]
+                text-[--color-text-primary] font-medium
                 transition-all duration-[--transition-fast]
-                focus:outline-none focus:ring-2 focus:ring-[--color-focus] focus:ring-offset-2 focus:ring-offset-[--color-bg-primary]
+                focus:outline-none focus:border-[--color-focus] hover:border-[--color-text-primary]
                 disabled:opacity-50 disabled:cursor-not-allowed
                 cursor-pointer
               `,

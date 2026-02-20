@@ -30,9 +30,8 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
             className={cn(
                 `
           fixed top-0 right-0 z-20 h-16
-          bg-[--color-bg-secondary]/80
-          backdrop-blur-md
-          border-b border-[--color-border]
+          bg-[--color-bg-secondary]
+          border-b-2 border-[--color-border]
           flex items-center justify-between px-6
           transition-all duration-[--transition-normal]
         `,
@@ -48,13 +47,13 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="
-            w-full h-9 pl-10 pr-4
+            w-full h-10 pl-10 pr-4
             bg-[--color-bg-tertiary]
-            border border-[--color-border]
-            rounded-[--radius-md]
-            text-sm text-[--color-text-primary]
-            placeholder:text-[--color-text-muted]
-            focus:outline-none focus:ring-2 focus:ring-[--color-focus] focus:ring-offset-2 focus:ring-offset-[--color-bg-secondary]
+            border-2 border-[--color-border]
+            rounded-none
+            text-sm font-bold tracking-wider text-[--color-text-primary]
+            placeholder:text-[--color-text-muted] uppercase
+            focus:outline-none focus:border-[--color-focus]
             transition-all duration-[--transition-fast]
           "
                 />
@@ -82,8 +81,8 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
                 <ThemeToggle />
 
                 {/* User Menu */}
-                <div className="ml-2 pl-4 border-l border-[--color-border] flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full gold-gradient-bg flex items-center justify-center text-[--color-text-inverse] text-sm font-bold shadow-lg shadow-primary/20">
+                <div className="ml-2 pl-4 border-l-2 border-[--color-border] flex items-center gap-3">
+                    <div className="w-10 h-10 border-2 border-[--color-border] bg-[--color-text-primary] flex items-center justify-center text-[--color-bg-primary] text-sm font-black uppercase shadow-[--shadow-sm]">
                         A
                     </div>
                     <button

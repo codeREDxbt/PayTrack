@@ -28,11 +28,11 @@ export function MetricCard({
     className,
 }: MetricCardProps) {
     const accentColors = {
-        gold: 'text-[--color-accent-gold]',
-        blue: 'text-[--color-accent-blue]',
-        success: 'text-[--color-success]',
-        warning: 'text-[--color-warning]',
-        danger: 'text-[--color-danger]',
+        gold: 'text-[--color-accent-gold] bg-[--color-text-primary]/5',
+        blue: 'text-[--color-accent-blue] bg-[--color-text-primary]/5',
+        success: 'text-[--color-success] bg-[--color-text-primary]/5',
+        warning: 'text-[--color-warning] bg-[--color-text-primary]/5',
+        danger: 'text-[--color-danger] bg-[--color-text-primary]/5',
     };
 
     const getTrendIcon = () => {
@@ -54,32 +54,32 @@ export function MetricCard({
         <div
             className={cn(
                 `
-          p-4
+          p-4 relative
           bg-[--color-bg-secondary]
-          border border-[--color-border]
+          border-2 border-[--color-border]
           rounded-[--radius-lg]
           transition-all duration-[--transition-normal]
-          hover:border-[--color-border-subtle]
+          hover:shadow-[--shadow-sm] hover:-translate-y-[2px] hover:-translate-x-[2px] hover:border-[--color-text-primary]
         `,
                 className
             )}
         >
             <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[--color-text-secondary] truncate">{label}</p>
-                    <p className={cn('text-2xl font-semibold mt-1', accentColors[accentColor])}>
+                    <p className="text-xs font-bold uppercase tracking-widest text-[--color-text-secondary] truncate">{label}</p>
+                    <p className={cn('text-3xl font-bold mt-2', accentColors[accentColor].split(' ')[0])}>
                         {value}
                     </p>
                     {trend && (
-                        <div className={cn('flex items-center gap-1 mt-2 text-xs', getTrendColor())}>
+                        <div className={cn('flex items-center gap-1 mt-2 text-xs font-bold', getTrendColor())}>
                             {getTrendIcon()}
                             <span>{Math.abs(trend.value)}%</span>
-                            <span className="text-[--color-text-muted]">vs last month</span>
+                            <span className="text-[--color-text-muted] uppercase tracking-wider text-[10px]">vs last month</span>
                         </div>
                     )}
                 </div>
                 {icon && (
-                    <div className="p-2 bg-[--color-bg-tertiary] rounded-[--radius-md] text-[--color-text-muted]">
+                    <div className={cn("p-3 border-2 border-[--color-border] rounded-none opacity-80", accentColors[accentColor].split(' ')[1])}>
                         {icon}
                     </div>
                 )}
