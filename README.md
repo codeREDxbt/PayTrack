@@ -354,7 +354,7 @@ PayTrack/
 │   ├── phase-4/security-testing.md
 │   ├── phase-5/api-reference.md
 │   ├── phase-5/test-infrastructure.md
-│   ├── report/PayTrack_Project_Report.md
+│   ├── report/PayTrack_Project_Report.md · .pdf   # source + submission PDF
 │   ├── build-conventions.md
 │   └── assets/screenshots/    # 01-login.png … 06-employee-dashboard.png
 │
@@ -446,6 +446,7 @@ authorised in the same place the data is read.
 | [`docs/phase-5/test-infrastructure.md`](docs/phase-5/test-infrastructure.md) | Phase 5 — opaque-box test architecture, harness, tiers and flags |
 | [`docs/build-conventions.md`](docs/build-conventions.md) | Phase 3–5 build contract: engine rules, API contract, file ownership |
 | [`docs/report/PayTrack_Project_Report.md`](docs/report/PayTrack_Project_Report.md) | Consolidated report, real-world use cases and scaling roadmap |
+| [`docs/report/PayTrack_Project_Report.pdf`](docs/report/PayTrack_Project_Report.pdf) | Submission-ready PDF of the report (regenerate with `node docs/report/generate_pdf.mjs`) |
 
 ---
 
