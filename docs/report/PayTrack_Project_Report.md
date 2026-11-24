@@ -7,7 +7,7 @@
 | **Student Name** | Vinayak |
 | **Roll Number** | 2501730150 |
 | **Course** | Database Management Systems |
-| **University** | [UNIVERSITY_NAME] |
+| **University** | K.R. Mangalam University |
 | **Project** | PayTrack – Payroll & Attendance Management System |
 | **Deliverable** | Phase 5 — Integration, UI and Final Presentation |
 
