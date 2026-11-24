@@ -10,8 +10,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
+      // No service worker in dev: a precached index.html there keeps serving an
+      // old document (and its old CSP), so the client can appear unable to reach
+      // the API until the registration is cleared. Production builds still ship
+      // the PWA.
       devOptions: {
-        enabled: true
+        enabled: false
       },
 
       manifest: {
