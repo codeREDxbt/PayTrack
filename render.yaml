@@ -1,0 +1,21 @@
+# Render blueprint for the PayTrack API.
+# https://render.com/docs/blueprint-spec
+#
+# The free plan has an ephemeral disk: the SQLite file is rebuilt and reseeded
+# from database/*.sql on every cold start, so demo data resets. Add a paid disk
+# and set PAYTRACK_DB_PATH to a path on it if the data must survive restarts.
+services:
+  - type: web
+    name: paytrack-api
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: echo "no build step: the API only uses Node built-ins"
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: HOST
+        value: 0.0.0.0
+      - key: CORS_ORIGINS
+        value: https://paytrackx.vercel.app

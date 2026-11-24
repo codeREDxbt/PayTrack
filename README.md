@@ -241,7 +241,9 @@ The API listens on `http://127.0.0.1:4000/api` and binds loopback only. On first
 starts reuse the existing database and never re-seed it.
 
 Set a different port with `PORT=4001 node server/index.js`, and a different database file with
-`PAYTRACK_DB_PATH=/path/to/paytrack.sqlite`.
+`PAYTRACK_DB_PATH=/path/to/paytrack.sqlite`. The API binds `127.0.0.1` by default; a hosted
+environment sets `HOST=0.0.0.0` so the platform's proxy can reach it, and `CORS_ORIGINS` lists the
+deployed client origin(s).
 
 ### 3. Start the web client
 
@@ -276,9 +278,11 @@ The client is static; the API is not. A deployed build calls the API URL baked i
 hosting the client alone leaves sign-in failing with "Cannot reach the PayTrack API".
 
 1. Host `server/` somewhere that runs Node 22.5+ (`node:sqlite` is a built-in) and exposes it over
-   HTTPS — Render, Railway or Fly.io all work. The API creates and seeds `database/paytrack.sqlite`
-   on first start; on hosts with an ephemeral disk the demo data simply resets when the service
-   restarts, so attach a volume if the data must persist.
+   HTTPS — Render, Railway or Fly.io all work. `render.yaml` is a ready blueprint: it sets
+   `HOST=0.0.0.0`, `NODE_VERSION=24` and `CORS_ORIGINS`, and needs no build step because the API
+   only uses Node built-ins. The API creates and seeds `database/paytrack.sqlite` on first start; on
+   hosts with an ephemeral disk the demo data resets when the service restarts, so attach a volume
+   and point `PAYTRACK_DB_PATH` at it if the data must persist.
 2. Set `CORS_ORIGINS` on the API host to the client's origin, e.g.
    `CORS_ORIGINS=https://paytrackx.vercel.app` (comma-separated for several, loopback is always allowed).
 3. Build the client with `VITE_API_URL=https://<api-host>/api`. The CSP in `index.html` is extended

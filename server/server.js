@@ -20,6 +20,7 @@ const DEFAULT_DB_PATH = path.join(DATABASE_DIR, 'paytrack.sqlite');
 
 export async function startApiServer({
   port = 4000,
+  host = '127.0.0.1',
   dbPath = DEFAULT_DB_PATH,
   log = () => {},
   hooks = {},
@@ -87,14 +88,15 @@ export async function startApiServer({
 
   await new Promise((resolve, reject) => {
     server.once('error', reject);
-    server.listen(port, '127.0.0.1', () => {
+    server.listen(port, host, () => {
       server.removeListener('error', reject);
       resolve();
     });
   });
 
   const actualPort = server.address().port;
-  const baseUrl = `http://127.0.0.1:${actualPort}/api`;
+  const shownHost = host === '0.0.0.0' ? '127.0.0.1' : host;
+  const baseUrl = `http://${shownHost}:${actualPort}/api`;
 
   return {
     server,
