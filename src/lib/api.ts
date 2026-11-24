@@ -23,7 +23,12 @@ import type {
     UpdateEmployeeInput,
 } from './types';
 
-const rawBase = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://127.0.0.1:4000/api';
+// VITE_API_URL is required for a deployed build (the API is on another origin).
+// In development the default is a relative '/api', which Vite proxies to the
+// API on port 4000 (see vite.config.ts). Same-origin requests mean the client
+// works whether the page was opened as localhost, 127.0.0.1 or a LAN IP, and
+// no CORS preflight is involved.
+const rawBase = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 export const API_BASE_URL = rawBase.replace(/\/+$/, '');
 
 const TOKEN_KEY = 'paytrack.session.token';

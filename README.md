@@ -255,9 +255,11 @@ npm run dev
 
 Open **http://127.0.0.1:5173**. Vite serves the client; the API must be running for sign-in to work.
 
-The client reads its API base URL from `VITE_API_URL` (default `http://127.0.0.1:4000/api`). If you move
-the API to another origin, also add that origin to the `connect-src` directive of the Content Security
-Policy in `index.html`.
+In development the client calls a relative `/api`, which Vite proxies to `http://127.0.0.1:4000` (see
+`vite.config.ts`). That keeps the request same-origin, so it works whether you open the app as
+`localhost`, `127.0.0.1` or a LAN address, and no CORS is involved. A deployed build sets
+`VITE_API_URL` to the public API instead, and `vite.config.ts` adds that origin to the CSP
+`connect-src` automatically.
 
 > The seed data covers **August–October 2026**. On first sign-in the app opens the most recent month
 > that has data (October 2026); use the month picker to move between periods.

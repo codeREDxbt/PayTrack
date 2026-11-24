@@ -35,6 +35,17 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
+    server: {
+      // Same-origin API calls in dev: the client requests '/api/...' and Vite
+      // forwards it to the Node API on 4000. This keeps localhost, 127.0.0.1 and
+      // a LAN IP all working, with no CORS and no mixed-host failures.
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:4000',
+          changeOrigin: false,
+        },
+      },
+    },
     plugins: [
       react(),
       tailwindcss(),
