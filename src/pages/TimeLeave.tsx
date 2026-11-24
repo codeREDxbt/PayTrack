@@ -1,512 +1,422 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
-    ChevronLeft,
-    ChevronRight,
     Check,
-    X,
+    X as XIcon,
     Coffee,
     Calendar as CalendarIcon,
     Clock,
     Users,
     Loader2,
+    AlertTriangle,
     CheckSquare,
     Square,
 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Button, Card, Select, MetricCard } from '../components/ui';
-import type { AttendanceRecord } from '../lib/types';
-import { getDaysInMonth, formatDate } from '../lib/utils';
+import type { AttendanceStatus } from '../lib/types';
+import {
+    formatDateReadable,
+    formatMonthLabel,
+    monthOptions,
+    todayIso,
+} from '../lib/format';
 
 // ================================
-// Time & Leave Page
-// Attendance with bulk marking
+// Time & Leave
+// Staff edit attendance (POST/PATCH /attendance); an EMPLOYEE gets the same page
+// read-only, scoped by the API to their own rows. Statuses are the Phase 1
+// enum values, not a UI-only vocabulary.
 // ================================
 
+const STATUS_META: Record<AttendanceStatus, { label: string; badge: string; icon: React.ReactNode }> = {
+    PRESENT: { label: 'Present', badge: 'bg-success text-white', icon: <Check className="w-4 h-4" /> },
+    ABSENT: { label: 'Absent', badge: 'bg-danger text-white', icon: <XIcon className="w-4 h-4" /> },
+    HALF_DAY: { label: 'Half day', badge: 'bg-accent-gold text-black', icon: <Clock className="w-4 h-4" /> },
+    ON_LEAVE: { label: 'On leave', badge: 'bg-warning text-black', icon: <Coffee className="w-4 h-4" /> },
+    HOLIDAY: { label: 'Holiday', badge: 'bg-accent-blue text-white', icon: <CalendarIcon className="w-4 h-4" /> },
+};
+
+const MARKABLE: AttendanceStatus[] = ['PRESENT', 'ABSENT', 'HALF_DAY', 'ON_LEAVE'];
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-];
-
-type AttendanceStatus = 'present' | 'absent' | 'leave' | 'holiday' | 'half-day';
-type ViewMode = 'calendar' | 'bulk';
-
-const statusColors: Record<AttendanceStatus, string> = {
-    present: 'bg-success text-white',
-    absent: 'bg-danger text-white',
-    leave: 'bg-warning text-black',
-    holiday: 'bg-accent-blue text-white',
-    'half-day': 'bg-accent-gold text-black',
-};
-
-const statusIcons: Record<AttendanceStatus, React.ReactNode> = {
-    present: <Check className="w-4 h-4" />,
-    absent: <X className="w-4 h-4" />,
-    leave: <Coffee className="w-4 h-4" />,
-    holiday: <CalendarIcon className="w-4 h-4" />,
-    'half-day': <Clock className="w-4 h-4" />,
-};
 
 export function TimeLeave() {
+    const { user } = useAuth();
     const {
         employees,
         attendance,
-        attendanceLoading,
+        loading,
         markAttendance,
         updateAttendance,
         currentMonth,
-        setCurrentMonth
+        setCurrentMonth,
+        error,
     } = useApp();
+    const isStaff = user?.isStaff ?? false;
 
-    const [viewMode, setViewMode] = useState<ViewMode>('bulk');
-    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
-    const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus>('present');
+    const [calendarEmployee, setCalendarEmployee] = useState<string>(
+        isStaff ? '' : String(user?.employeeId ?? '')
+    );
+    const [markStatus, setMarkStatus] = useState<AttendanceStatus>('PRESENT');
+    const [bulkDate, setBulkDate] = useState(todayIso());
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [saving, setSaving] = useState(false);
-    const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
-    const [bulkDate, setBulkDate] = useState(formatDate(new Date()));
 
-    // Parse current month
-    const [year, month] = currentMonth.split('-').map(Number);
-    const daysInMonth = getDaysInMonth(year, month - 1);
-    const firstDayOfMonth = new Date(year, month - 1, 1).getDay();
+    const months = useMemo(() => monthOptions(currentMonth), [currentMonth]);
+    const visibleEmployees = useMemo(
+        () => (isStaff ? employees : employees.filter((e) => e.employeeId === user?.employeeId)),
+        [employees, isStaff, user?.employeeId]
+    );
 
-    // Generate calendar days
-    const calendarDays = useMemo(() => {
-        const days = [];
-        for (let i = 0; i < firstDayOfMonth; i++) {
-            days.push({ day: null, date: '' });
+    const [year, monthNumber] = currentMonth.split('-').map(Number);
+    const daysInMonth = new Date(year, monthNumber, 0).getDate();
+    const firstWeekday = new Date(year, monthNumber - 1, 1).getDay();
+    const today = todayIso();
+
+    const stats = useMemo(
+        () => ({
+            present: attendance.filter((r) => r.status === 'PRESENT').length,
+            absent: attendance.filter((r) => r.status === 'ABSENT').length,
+            leave: attendance.filter((r) => r.status === 'ON_LEAVE').length,
+            half: attendance.filter((r) => r.status === 'HALF_DAY').length,
+            overtime: attendance.reduce((sum, r) => sum + r.overtimeHours, 0),
+            late: attendance.filter((r) => r.isLate).length,
+        }),
+        [attendance]
+    );
+
+    const calendarAttendance = useMemo(() => {
+        const employeeId = Number(calendarEmployee);
+        const map = new Map<string, (typeof attendance)[number]>();
+        if (!employeeId) return map;
+        for (const record of attendance) {
+            if (record.employeeId === employeeId) map.set(record.date, record);
         }
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            days.push({ day, date });
+        return map;
+    }, [attendance, calendarEmployee]);
+
+    const upsert = async (employeeId: number, date: string, status: AttendanceStatus) => {
+        const existing = attendance.find((r) => r.employeeId === employeeId && r.date === date);
+        if (existing) await updateAttendance(existing.attendanceId, { status });
+        else await markAttendance({ employeeId, date, status });
+    };
+
+    const handleCellClick = async (date: string) => {
+        if (!isStaff || !calendarEmployee || date > today) return;
+        setSaving(true);
+        try {
+            await upsert(Number(calendarEmployee), date, markStatus);
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Could not save attendance.');
+        } finally {
+            setSaving(false);
         }
-        return days;
-    }, [year, month, daysInMonth, firstDayOfMonth]);
+    };
 
-    // Get attendance for a specific day
-    const getAttendanceForDay = (date: string, employeeId: string): AttendanceRecord | undefined => {
-        return attendance.find(
-            (record) => record.date === date && record.employeeId === employeeId
+    const toggleSelected = (id: number) => {
+        setSelectedIds((current) =>
+            current.includes(id) ? current.filter((value) => value !== id) : [...current, id]
         );
     };
 
-    const getEmployeeName = (id: string) => employees.find(e => e.id === id)?.name || 'Unknown';
-
-    // Count attendance for stats
-    const stats = useMemo(() => {
-        // Create a Set of valid employee IDs
-        const validEmployeeIds = new Set(employees.map(e => e.id));
-
-        const monthAttendance = attendance.filter(
-            (record) => record.date.startsWith(currentMonth) && validEmployeeIds.has(record.employeeId)
-        );
-        return {
-            present: monthAttendance.filter((r) => r.status === 'present').length,
-            absent: monthAttendance.filter((r) => r.status === 'absent').length,
-            leave: monthAttendance.filter((r) => r.status === 'leave').length,
-            halfDay: monthAttendance.filter((r) => r.status === 'half-day').length,
-            overtime: monthAttendance.reduce((sum, r) => sum + (r.overtimeHours || 0), 0),
-        };
-    }, [attendance, employees, currentMonth]);
-
-    // Navigate months
-    const handlePrevMonth = () => {
-        const date = new Date(year, month - 2, 1);
-        setCurrentMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
-    };
-
-    const handleNextMonth = () => {
-        const date = new Date(year, month, 1);
-        setCurrentMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
-    };
-
-    // Toggle employee selection for bulk
-    const toggleEmployeeSelection = (empId: string) => {
-        setSelectedEmployees(prev =>
-            prev.includes(empId)
-                ? prev.filter(id => id !== empId)
-                : [...prev, empId]
-        );
-    };
-
-    // Select all employees
-    const selectAllEmployees = () => {
-        setSelectedEmployees(employees.map(e => e.id));
-    };
-
-    // Clear selection
-    const clearSelection = () => {
-        setSelectedEmployees([]);
-    };
-
-    // Mark bulk attendance
     const handleBulkMark = async () => {
-        if (selectedEmployees.length === 0) {
-            alert('Please select at least one employee.');
-            return;
-        }
-
+        if (!selectedIds.length) return;
         setSaving(true);
         try {
-            for (const empId of selectedEmployees) {
-                const existing = getAttendanceForDay(bulkDate, empId);
-                if (existing) {
-                    await updateAttendance(existing.id, { status: selectedStatus });
-                } else {
-                    await markAttendance({
-                        employeeId: empId,
-                        date: bulkDate,
-                        status: selectedStatus,
-                        overtimeHours: 0,
-                    });
-                }
+            for (const id of selectedIds) {
+                await upsert(id, bulkDate, markStatus);
             }
-            setSelectedEmployees([]);
-        } catch (error) {
-            console.error('Error marking attendance:', error);
-            alert('Failed to mark attendance. Please try again.');
+            setSelectedIds([]);
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Bulk marking failed.');
         } finally {
             setSaving(false);
         }
     };
 
-    // Toggle attendance for a day (calendar view)
-    const handleDayClick = async (date: string) => {
-        if (!date || selectedEmployeeId === 'all') return;
-
-        setSaving(true);
-        try {
-            const existingRecord = getAttendanceForDay(date, selectedEmployeeId);
-
-            if (existingRecord) {
-                await updateAttendance(existingRecord.id, { status: selectedStatus });
-            } else {
-                await markAttendance({
-                    employeeId: selectedEmployeeId,
-                    date,
-                    status: selectedStatus,
-                    overtimeHours: 0,
-                });
-            }
-        } catch (error) {
-            console.error('Error saving attendance:', error);
-            alert('Failed to save attendance. Please try again.');
-        } finally {
-            setSaving(false);
+    const cells = useMemo(() => {
+        const result: (string | null)[] = [];
+        for (let i = 0; i < firstWeekday; i += 1) result.push(null);
+        for (let day = 1; day <= daysInMonth; day += 1) {
+            result.push(`${year}-${String(monthNumber).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
         }
-    };
+        return result;
+    }, [daysInMonth, firstWeekday, monthNumber, year]);
 
-    // Employee options for dropdown
-    const employeeOptions = [
-        { value: 'all', label: 'All Employees' },
-        ...employees.map((emp) => ({ value: emp.id, label: emp.name })),
-    ];
+    const monthRecords = useMemo(
+        () => [...attendance].sort((a, b) => a.date.localeCompare(b.date) || a.employeeId - b.employeeId),
+        [attendance]
+    );
 
     return (
         <div className="space-y-6">
-            {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black uppercase tracking-widest text-[--color-text-primary]">
-                        Time & Leave
+                    <h1 className="text-3xl font-black uppercase tracking-widest text-[--color-text-primary] sm:text-4xl">
+                        {isStaff ? 'Time & Leave' : 'My Attendance'}
                     </h1>
                     <p className="text-[--color-text-secondary] mt-1 text-xs font-bold uppercase tracking-widest">
-                        Precision Tracking. Professional Growth.
+                        {isStaff ? 'Mark and correct attendance' : 'Read-only view of your own record'} for{' '}
+                        {formatMonthLabel(currentMonth)}
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setViewMode('bulk')}
-                        className={`px-4 py-2 border-2 border-[--color-border] border-r-0 text-sm font-bold uppercase tracking-wider transition-all ${viewMode === 'bulk'
-                            ? 'bg-[--color-text-primary] text-[--color-bg-primary]'
-                            : 'bg-[--color-bg-tertiary] text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
-                            }`}
-                    >
-                        <Users className="w-4 h-4 inline mr-2" />
-                        Bulk
-                    </button>
-                    <button
-                        onClick={() => setViewMode('calendar')}
-                        className={`px-4 py-2 border-2 border-[--color-border] text-sm font-bold uppercase tracking-wider transition-all ${viewMode === 'calendar'
-                            ? 'bg-[--color-text-primary] text-[--color-bg-primary]'
-                            : 'bg-[--color-bg-tertiary] text-[--color-text-muted] hover:bg-[--color-bg-elevated]'
-                            }`}
-                    >
-                        <CalendarIcon className="w-4 h-4 inline mr-1" />
-                        Calendar
-                    </button>
-                </div>
+                <Select
+                    options={months}
+                    value={currentMonth}
+                    onChange={(event) => setCurrentMonth(event.target.value)}
+                    className="w-44"
+                />
             </div>
 
-            {/* Stats Row */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <MetricCard label="Present Days" value={stats.present} accentColor="success" className="bg-success/5 border-success/10" />
-                <MetricCard label="Absent Days" value={stats.absent} accentColor="danger" className="bg-danger/5 border-danger/10" />
-                <MetricCard label="Leave Days" value={stats.leave} accentColor="warning" className="bg-warning/5 border-warning/10" />
-                <MetricCard label="Half Days" value={stats.halfDay} accentColor="gold" className="glass-gold border-primary/10" />
-                <MetricCard label="Overtime Hrs" value={`${stats.overtime} hrs`} accentColor="blue" className="bg-accent-blue/5 border-accent-blue/10 col-span-2 md:col-span-1" />
-            </div>
-
-            {/* Loading state */}
-            {attendanceLoading ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-[--color-accent-gold]" />
-                </div>
-            ) : viewMode === 'bulk' ? (
-                /* BULK ATTENDANCE VIEW */
-                <Card padding="md">
-                    <div className="space-y-4">
-                        {/* Bulk Controls */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[--color-border]">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
-                                <input
-                                    type="date"
-                                    value={bulkDate}
-                                    onChange={(e) => setBulkDate(e.target.value)}
-                                    className="h-10 px-3 bg-[--color-bg-tertiary] border-2 border-[--color-border] rounded-none text-[--color-text-primary] w-full sm:w-auto font-bold focus:border-[--color-focus] outline-none"
-                                />
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    {(['present', 'absent', 'leave', 'half-day'] as AttendanceStatus[]).map((status) => (
-                                        <button
-                                            key={status}
-                                            onClick={() => setSelectedStatus(status)}
-                                            className={`
-                                                flex items-center gap-1.5 px-3 py-2 rounded-[--radius-md] text-sm font-medium
-                                                transition-all min-h-[44px] flex-1 sm:flex-none justify-center border-2
-                                                ${selectedStatus === status
-                                                    ? `${statusColors[status]} border-[--color-text-primary] shadow-md font-bold`
-                                                    : 'bg-[--color-bg-tertiary] border-[--color-border] text-[--color-text-muted] hover:bg-[--color-bg-elevated] hover:border-[--color-border-subtle]'
-                                                }
-                                            `}
-                                        >
-                                            {statusIcons[status]}
-                                            <span className="capitalize">{status.replace('-', ' ')}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            <Button
-                                variant="primary"
-                                onClick={handleBulkMark}
-                                disabled={saving || selectedEmployees.length === 0}
-                            >
-                                {saving ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <Check className="w-4 h-4" />
-                                )}
-                                Mark {selectedEmployees.length} Selected
-                            </Button>
-                        </div>
-
-                        {/* Selection Controls */}
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={selectAllEmployees}
-                                className="text-sm text-[--color-accent-gold] hover:underline"
-                            >
-                                Select All
-                            </button>
-                            <button
-                                onClick={clearSelection}
-                                className="text-sm text-[--color-text-muted] hover:underline"
-                            >
-                                Clear Selection
-                            </button>
-                            <span className="text-sm text-[--color-text-muted]">
-                                {selectedEmployees.length} of {employees.length} selected
-                            </span>
-                        </div>
-
-                        {/* Employee List */}
-                        {employees.length === 0 ? (
-                            <div className="text-center py-8 text-[--color-text-muted]">
-                                No employees found. Add employees in the People page first.
-                            </div>
-                        ) : (
-                            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                                {employees.map((emp) => {
-                                    const isSelected = selectedEmployees.includes(emp.id);
-                                    const todayRecord = getAttendanceForDay(bulkDate, emp.id);
-
-                                    return (
-                                        <div
-                                            key={emp.id}
-                                            onClick={() => toggleEmployeeSelection(emp.id)}
-                                            className={`
-                                                flex items-center justify-between p-3 rounded-[--radius-md] cursor-pointer
-                                                transition-all border
-                                                ${isSelected
-                                                    ? 'bg-[--color-accent-gold]/10 border-[--color-accent-gold]'
-                                                    : 'bg-[--color-bg-tertiary] border-transparent hover:bg-[--color-bg-elevated]'
-                                                }
-                                            `}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                {isSelected ? (
-                                                    <CheckSquare className="w-5 h-5 text-[--color-accent-gold]" />
-                                                ) : (
-                                                    <Square className="w-5 h-5 text-[--color-text-muted]" />
-                                                )}
-                                                <div className="w-8 h-8 rounded-full bg-[--color-accent-gold]/20 flex items-center justify-center text-[--color-accent-gold] text-sm font-medium">
-                                                    {emp.name.charAt(0)}
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-[--color-text-primary]">{emp.name}</p>
-                                                    <p className="text-xs text-[--color-text-muted]">{emp.role} • {emp.department}</p>
-                                                </div>
-                                            </div>
-                                            {todayRecord && (
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[todayRecord.status]}`}>
-                                                    {todayRecord.status}
-                                                </span>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
+            {error && (
+                <Card padding="md" className="border-[--color-danger] bg-[--color-danger]/5">
+                    <p className="flex items-center gap-2 text-sm text-[--color-danger]">
+                        <AlertTriangle className="w-4 h-4" /> {error}
+                    </p>
                 </Card>
-            ) : (
-                /* CALENDAR VIEW */
+            )}
+
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                <MetricCard label="Present" value={stats.present} accentColor="success" />
+                <MetricCard label="Absent" value={stats.absent} accentColor="danger" />
+                <MetricCard label="Leave" value={stats.leave} accentColor="warning" />
+                <MetricCard label="Half days" value={stats.half} accentColor="gold" />
+                <MetricCard label="Late marks" value={stats.late} accentColor="warning" />
+                <MetricCard label="Overtime hrs" value={stats.overtime} accentColor="blue" />
+            </div>
+
+            {isStaff && (
                 <Card padding="md">
-                    {/* Calendar Controls */}
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                            <Select
-                                options={employeeOptions}
-                                value={selectedEmployeeId}
-                                onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                                className="w-full sm:w-48"
+                    <h2 className="text-sm font-black uppercase tracking-widest text-[--color-text-primary] mb-3">
+                        Bulk marking
+                    </h2>
+                    <div className="flex flex-col lg:flex-row lg:items-end gap-3">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-xs font-bold uppercase tracking-widest text-[--color-text-secondary]">
+                                Date
+                            </label>
+                            <input
+                                type="date"
+                                value={bulkDate}
+                                max={today}
+                                onChange={(event) => setBulkDate(event.target.value)}
+                                className="h-10 px-3 bg-[--color-bg-tertiary] border-2 border-[--color-border]
+                                    text-[--color-text-primary] font-bold focus:border-[--color-focus] outline-none"
                             />
-
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm text-[--color-text-muted] w-full sm:w-auto">Mark as:</span>
-                                {(['present', 'absent', 'leave', 'half-day'] as AttendanceStatus[]).map((status) => (
-                                    <button
-                                        key={status}
-                                        onClick={() => setSelectedStatus(status)}
-                                        className={`
-                                            flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                                            transition-all min-h-[44px] flex-1 sm:flex-none justify-center border-2
-                                            ${selectedStatus === status
-                                                ? `${statusColors[status]} border-[--color-text-primary] shadow-md font-bold`
-                                                : 'bg-[--color-bg-tertiary] border-[--color-border] text-[--color-text-muted] hover:bg-[--color-bg-elevated] hover:border-[--color-border-subtle]'
-                                            }
-                                        `}
-                                    >
-                                        {statusIcons[status]}
-                                        <span className="capitalize">{status.replace('-', ' ')}</span>
-                                    </button>
-                                ))}
-                            </div>
                         </div>
-
-                        {/* Month Navigation */}
-                        <div className="flex items-center justify-center gap-3">
-                            <button
-                                onClick={handlePrevMonth}
-                                className="p-2 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-text-primary] hover:bg-[--color-bg-tertiary] transition-colors"
-                            >
-                                <ChevronLeft className="w-5 h-5" />
-                            </button>
-                            <span className="text-lg font-medium text-[--color-text-primary] min-w-[140px] text-center">
-                                {MONTHS[month - 1]} {year}
-                            </span>
-                            <button
-                                onClick={handleNextMonth}
-                                className="p-2 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-text-primary] hover:bg-[--color-bg-tertiary] transition-colors"
-                            >
-                                <ChevronRight className="w-5 h-5" />
-                            </button>
-                        </div>
+                        <Select
+                            label="Status"
+                            options={MARKABLE.map((status) => ({ value: status, label: STATUS_META[status].label }))}
+                            value={markStatus}
+                            onChange={(event) => setMarkStatus(event.target.value as AttendanceStatus)}
+                            className="w-full lg:w-40"
+                        />
+                        <Button variant="secondary" size="sm" onClick={() => setSelectedIds(visibleEmployees.map((e) => e.employeeId))}>
+                            <CheckSquare className="w-4 h-4" /> Select all
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
+                            Clear
+                        </Button>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={handleBulkMark}
+                            disabled={!selectedIds.length || saving}
+                            isLoading={saving}
+                        >
+                            <Check className="w-4 h-4" />
+                            Mark {selectedIds.length}
+                        </Button>
                     </div>
 
-                    {selectedEmployeeId === 'all' && (
-                        <div className="mb-4 p-3 bg-[--color-bg-tertiary] rounded-[--radius-md] text-sm text-[--color-text-secondary]">
-                            Select an employee to mark attendance on the calendar.
-                        </div>
-                    )}
-
-                    {/* Calendar Grid */}
-                    <div className="grid grid-cols-7 gap-1">
-                        {DAYS_OF_WEEK.map((day) => (
-                            <div key={day} className="h-8 flex items-center justify-center text-xs font-medium text-[--color-text-muted] uppercase">
-                                {day}
-                            </div>
-                        ))}
-
-                        {calendarDays.map((item, idx) => {
-                            const isToday = item.date === formatDate(new Date());
-                            const isFuture = item.date ? new Date(item.date) > new Date() : false;
-                            const canClick = item.day && selectedEmployeeId !== 'all' && !isFuture && !saving;
-
-                            // For "All Employees" view, show dots for everyone
-                            const validEmployeeIds = new Set(employees.map(e => e.id));
-                            const dayRecords = item.date && selectedEmployeeId === 'all'
-                                ? attendance.filter(r => r.date === item.date && validEmployeeIds.has(r.employeeId))
-                                : [];
-
-                            const record = item.date && selectedEmployeeId !== 'all'
-                                ? getAttendanceForDay(item.date, selectedEmployeeId)
-                                : null;
-
+                    <div className="mt-4 max-h-64 overflow-y-auto divide-y divide-[--color-border] border border-[--color-border]">
+                        {visibleEmployees.map((employee) => {
+                            const selected = selectedIds.includes(employee.employeeId);
+                            const existing = attendance.find(
+                                (r) => r.employeeId === employee.employeeId && r.date === bulkDate
+                            );
                             return (
                                 <button
-                                    key={idx}
-                                    onClick={() => canClick && handleDayClick(item.date)}
-                                    disabled={!canClick && selectedEmployeeId !== 'all'}
-                                    className={`
-                                        h-11 sm:h-14 flex flex-col items-center justify-start py-1 border-2 border-transparent
-                                        transition-all text-xs font-bold uppercase
-                                        ${!item.day ? 'cursor-default' : ''}
-                                        ${canClick ? 'cursor-pointer hover:border-[--color-text-primary] hover:-translate-y-1' : ''}
-                                        ${isToday ? 'border-[--color-accent-gold] z-10 shadow-[--shadow-sm]' : ''}
-                                        ${record ? statusColors[record.status] + ' border-[--color-text-primary] shadow-[--shadow-sm]' : item.day ? 'bg-[--color-bg-tertiary] border-[--color-border]' : ''}
-                                        ${isFuture ? 'opacity-40' : ''}
-                                        disabled:cursor-default
-                                    `}
+                                    key={employee.employeeId}
+                                    onClick={() => toggleSelected(employee.employeeId)}
+                                    className={`w-full flex items-center justify-between gap-3 p-2 text-left transition-colors ${
+                                        selected ? 'bg-[--color-accent-gold]/10' : 'hover:bg-[--color-bg-tertiary]'
+                                    }`}
                                 >
-                                    {item.day && (
-                                        <>
-                                            <span className={`font-medium mb-0.5 ${record ? 'text-white' : 'text-[--color-text-primary]'}`}>
-                                                {item.day}
-                                            </span>
-
-                                            {/* Show dots for All Employees view */}
-                                            {selectedEmployeeId === 'all' && dayRecords.length > 0 && (
-                                                <div className="flex flex-wrap gap-0.5 justify-center px-1 w-full max-w-[90%]">
-                                                    {dayRecords.map((r, i) => (
-                                                        <div
-                                                            key={i}
-                                                            className={`w-1.5 h-1.5 rounded-full ${statusColors[r.status].split(' ')[0]}`} // Extract just the bg color class
-                                                            title={`${getEmployeeName ? getEmployeeName(r.employeeId) : 'Employee'}: ${r.status}`}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </>
+                                    <span className="flex items-center gap-2 min-w-0">
+                                        {selected ? (
+                                            <CheckSquare className="w-4 h-4 text-[--color-accent-gold]" />
+                                        ) : (
+                                            <Square className="w-4 h-4 text-[--color-text-muted]" />
+                                        )}
+                                        <span className="truncate text-sm text-[--color-text-primary]">
+                                            {employee.fullName}
+                                        </span>
+                                        <span className="hidden sm:inline text-xs text-[--color-text-muted]">
+                                            {employee.department}
+                                        </span>
+                                    </span>
+                                    {existing ? (
+                                        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_META[existing.status].badge}`}>
+                                            {STATUS_META[existing.status].label}
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] uppercase tracking-widest text-[--color-text-muted]">
+                                            Not marked
+                                        </span>
                                     )}
                                 </button>
                             );
                         })}
                     </div>
-
-                    {/* Legend */}
-                    <div className="flex items-center gap-3 sm:gap-4 mt-4 pt-4 border-t border-[--color-border] flex-wrap">
-                        <span className="text-xs text-[--color-text-muted]">Legend:</span>
-                        {Object.entries(statusColors).map(([status, color]) => (
-                            <div key={status} className="flex items-center gap-1.5">
-                                <div className={`w-3 h-3 rounded ${color}`} />
-                                <span className="text-xs text-[--color-text-secondary] capitalize">
-                                    {status.replace('-', ' ')}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
                 </Card>
             )}
+
+            <Card padding="md">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <h2 className="text-sm font-black uppercase tracking-widest text-[--color-text-primary]">
+                        Calendar
+                    </h2>
+                    <div className="flex items-center gap-2">
+                        {isStaff ? (
+                            <Select
+                                options={[
+                                    { value: '', label: 'Select employee' },
+                                    ...visibleEmployees.map((employee) => ({
+                                        value: String(employee.employeeId),
+                                        label: employee.fullName,
+                                    })),
+                                ]}
+                                value={calendarEmployee}
+                                onChange={(event) => setCalendarEmployee(event.target.value)}
+                                className="w-52"
+                            />
+                        ) : (
+                            <span className="text-xs uppercase tracking-widest text-[--color-text-muted]">
+                                {user?.fullName}
+                            </span>
+                        )}
+                        {isStaff && (
+                            <div className="flex items-center gap-1">
+                                {MARKABLE.map((status) => (
+                                    <button
+                                        key={status}
+                                        onClick={() => setMarkStatus(status)}
+                                        title={STATUS_META[status].label}
+                                        className={`p-1.5 border-2 ${
+                                            markStatus === status
+                                                ? 'border-[--color-text-primary] bg-[--color-bg-tertiary]'
+                                                : 'border-transparent text-[--color-text-muted]'
+                                        }`}
+                                    >
+                                        {STATUS_META[status].icon}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-[--color-accent-gold]" />
+                    </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-7 gap-1">
+                            {DAYS_OF_WEEK.map((day) => (
+                                <div key={day} className="h-8 flex items-center justify-center text-xs font-medium text-[--color-text-muted] uppercase">
+                                    {day}
+                                </div>
+                            ))}
+                            {cells.map((date, index) => {
+                                const record = date ? calendarAttendance.get(date) : undefined;
+                                const clickable = Boolean(isStaff && calendarEmployee && date && date <= today);
+                                return (
+                                    <button
+                                        key={`${date ?? 'blank'}-${index}`}
+                                        onClick={() => date && void handleCellClick(date)}
+                                        disabled={!clickable}
+                                        className={`h-12 flex flex-col items-center justify-center border-2 text-xs font-bold transition-all ${
+                                            record ? `${STATUS_META[record.status].badge} border-[--color-text-primary]` : 'bg-[--color-bg-tertiary] border-[--color-border]'
+                                        } ${date === today ? 'ring-2 ring-[--color-accent-gold]' : ''} ${
+                                            clickable ? 'cursor-pointer hover:-translate-y-0.5' : 'cursor-default'
+                                        }`}
+                                    >
+                                        {date ? Number(date.slice(8)) : ''}
+                                        {record?.isLate && <span className="text-[9px] uppercase">late</span>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {isStaff && !calendarEmployee && (
+                            <p className="mt-3 text-xs text-[--color-text-muted]">
+                                Select an employee to mark or correct their days.
+                            </p>
+                        )}
+                    </>
+                )}
+            </Card>
+
+            <Card padding="none">
+                <div className="p-4 flex items-center justify-between">
+                    <h2 className="text-sm font-black uppercase tracking-widest text-[--color-text-primary]">
+                        {formatMonthLabel(currentMonth)} records
+                    </h2>
+                    <span className="text-xs text-[--color-text-muted] flex items-center gap-1">
+                        <Users className="w-3 h-3" /> {monthRecords.length} rows
+                    </span>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[760px]">
+                        <thead>
+                            <tr className="border-y-2 border-[--color-border] bg-[--color-bg-secondary]">
+                                {['Date', ...(isStaff ? ['Employee'] : []), 'Status', 'In', 'Out', 'Hours', 'OT', 'Late'].map((heading) => (
+                                    <th key={heading} className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-2">
+                                        {heading}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[--color-border]">
+                            {monthRecords.map((record) => {
+                                const employee = employees.find((e) => e.employeeId === record.employeeId);
+                                return (
+                                    <tr key={record.attendanceId} className="hover:bg-[--color-bg-tertiary]">
+                                        <td className="whitespace-nowrap px-4 py-2 text-sm text-[--color-text-primary]">
+                                            {formatDateReadable(record.date)}
+                                        </td>
+                                        {isStaff && (
+                                            <td className="px-4 py-2 text-sm text-[--color-text-secondary]">
+                                                {employee?.fullName ?? record.employeeName ?? `#${record.employeeId}`}
+                                            </td>
+                                        )}
+                                        <td className="px-4 py-2">
+                                            <span className={`inline-block px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_META[record.status].badge}`}>
+                                                {STATUS_META[record.status].label}
+                                            </span>
+                                        </td>
+                                        <td className="whitespace-nowrap px-4 py-2 text-right text-xs tabular-nums text-[--color-text-secondary]">{record.checkInTime ?? '—'}</td>
+                                        <td className="whitespace-nowrap px-4 py-2 text-right text-xs tabular-nums text-[--color-text-secondary]">{record.checkOutTime ?? '—'}</td>
+                                        <td className="px-4 py-2 text-right text-xs tabular-nums text-[--color-text-secondary]">{record.hoursWorked}</td>
+                                        <td className="px-4 py-2 text-right text-xs tabular-nums text-[--color-text-secondary]">{record.overtimeHours}</td>
+                                        <td className="px-4 py-2 text-right text-xs tabular-nums">
+                                            {record.isLate ? (
+                                                <span className="text-[--color-warning]">{record.lateMinutes}m</span>
+                                            ) : (
+                                                <span className="text-[--color-text-muted]">—</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    {monthRecords.length === 0 && (
+                        <p className="text-center py-10 text-[--color-text-muted]">No attendance recorded for this month.</p>
+                    )}
+                </div>
+            </Card>
         </div>
     );
 }

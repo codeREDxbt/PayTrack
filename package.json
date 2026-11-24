@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node test/run_e2e.js",
+    "cli": "node cli/paytrack-cli.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

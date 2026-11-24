@@ -1,172 +1,100 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import {
-    signInWithPopup,
-    signOut as firebaseSignOut,
-    onAuthStateChanged,
-    type User,
-} from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { api, ApiError, getStoredToken, storeToken } from '../lib/api';
+import type { AuthUser } from '../lib/types';
 
 // ================================
 // Auth Context
-// Firebase Google authentication with rate limiting and error sanitization
+// Session-based authentication against the PayTrack API. The bearer token is
+// minted by POST /auth/login, stored in localStorage, and validated with
+// GET /auth/me on reload. The database only keeps its SHA-256 digest.
 // ================================
 
-// ── Rate limiting constants ──────────────────────
-const MAX_SIGN_IN_ATTEMPTS = 3;
-const RATE_LIMIT_WINDOW_MS = 30_000; // 30 seconds
-
-// ── Friendly error mapper ────────────────────────
-function toFriendlyError(err: unknown): string {
-    const message = err instanceof Error ? err.message : String(err);
-    const code = (err as { code?: string })?.code ?? '';
-
-    const map: Record<string, string> = {
-        'auth/popup-blocked': 'Popup was blocked. Please allow popups for this site and try again.',
-        'auth/popup-closed-by-user': '', // Not an error — user dismissed
-        'auth/cancelled-popup-request': '', // Not an error
-        'auth/network-request-failed': 'Network error. Please check your connection and try again.',
-        'auth/too-many-requests': 'Too many sign-in attempts. Please wait a moment and try again.',
-        'auth/user-disabled': 'This account has been disabled. Contact support.',
-        'auth/account-exists-with-different-credential':
-            'An account already exists with this email using a different sign-in method.',
-    };
-
-    if (code in map) return map[code];
-
-    // Generic fallback — never expose raw SDK messages to users
-    console.error('[Auth error]', message);
-    return 'Sign in failed. Please try again.';
-}
-
-// ── Context type ─────────────────────────────────
 interface AuthContextType {
-    user: User | null;
+    user: AuthUser | null;
     loading: boolean;
     error: string | null;
-    rateLimited: boolean;
-    rateLimitSecondsLeft: number;
-    signInWithGoogle: () => Promise<void>;
+    signIn: (email: string, password: string) => Promise<void>;
     signOut: () => Promise<void>;
+    clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function useAuth() {
+export function useAuth(): AuthContextType {
     const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
+    if (!context) throw new Error('useAuth must be used within an AuthProvider');
     return context;
 }
 
-interface AuthProviderProps {
-    children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
-    const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+    const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [rateLimited, setRateLimited] = useState(false);
-    const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState(0);
 
-    // Rate limiting refs (mutable, no render needed)
-    const attemptCount = useRef(0);
-    const rateLimitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-    // Listen for auth state changes
+    // Restore a stored session once, so a page reload does not sign the user out.
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
+        let cancelled = false;
+        const token = getStoredToken();
+        if (!token) {
             setLoading(false);
-        });
-        return unsubscribe;
-    }, []);
-
-    // Cleanup timers on unmount
-    useEffect(() => {
+            return;
+        }
+        api.me()
+            .then((data) => {
+                if (!cancelled) setUser(data.user);
+            })
+            .catch(() => {
+                storeToken(null);
+            })
+            .finally(() => {
+                if (!cancelled) setLoading(false);
+            });
         return () => {
-            if (rateLimitTimer.current) clearTimeout(rateLimitTimer.current);
-            if (countdownTimer.current) clearInterval(countdownTimer.current);
+            cancelled = true;
         };
     }, []);
 
-    const startRateLimit = () => {
-        setRateLimited(true);
-        setRateLimitSecondsLeft(RATE_LIMIT_WINDOW_MS / 1000);
-
-        countdownTimer.current = setInterval(() => {
-            setRateLimitSecondsLeft(prev => {
-                if (prev <= 1) {
-                    if (countdownTimer.current) clearInterval(countdownTimer.current);
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        rateLimitTimer.current = setTimeout(() => {
-            attemptCount.current = 0;
-            setRateLimited(false);
-            setRateLimitSecondsLeft(0);
-        }, RATE_LIMIT_WINDOW_MS);
-    };
-
-    const signInWithGoogle = async () => {
-        if (rateLimited) return;
-
-        setError(null);
-        setLoading(true);
-        attemptCount.current += 1;
-
-        try {
-            await signInWithPopup(auth, googleProvider);
-            // Reset on success
-            attemptCount.current = 0;
-        } catch (err: unknown) {
-            const friendlyMessage = toFriendlyError(err);
-
-            if (!friendlyMessage) {
-                // User dismissed the popup — not an error
-                setLoading(false);
-                return;
-            }
-
-            setError(friendlyMessage);
-            setLoading(false);
-
-            // Apply rate limit after MAX_SIGN_IN_ATTEMPTS failures
-            if (attemptCount.current >= MAX_SIGN_IN_ATTEMPTS) {
-                startRateLimit();
-            }
-        }
-    };
-
-    const signOut = async () => {
-        setError(null);
-        try {
-            await firebaseSignOut(auth);
+    // The API client fires this when a request answers 401 (revoked or expired).
+    useEffect(() => {
+        const onUnauthorized = () => {
             setUser(null);
-        } catch (err) {
-            setError('Failed to sign out. Please try again.');
-            console.error('[Auth] Sign out error:', err);
-        }
-    };
+            setError('Your session expired. Please sign in again.');
+        };
+        window.addEventListener('paytrack:unauthorized', onUnauthorized);
+        return () => window.removeEventListener('paytrack:unauthorized', onUnauthorized);
+    }, []);
 
-    const value: AuthContextType = {
-        user,
-        loading,
-        error,
-        rateLimited,
-        rateLimitSecondsLeft,
-        signInWithGoogle,
-        signOut,
-    };
+    const signIn = useCallback(async (email: string, password: string) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await api.login(email, password);
+            storeToken(data.token);
+            setUser(data.user);
+        } catch (err) {
+            const message = err instanceof ApiError ? err.message : 'Sign in failed. Please try again.';
+            setError(message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const signOut = useCallback(async () => {
+        try {
+            await api.logout();
+        } catch {
+            // The local session is dropped even if the revoke call fails.
+        }
+        storeToken(null);
+        setUser(null);
+        setError(null);
+    }, []);
+
+    const clearError = useCallback(() => setError(null), []);
 
     return (
-        <AuthContext.Provider value={value}>
+        <AuthContext.Provider value={{ user, loading, error, signIn, signOut, clearError }}>
             {children}
         </AuthContext.Provider>
     );

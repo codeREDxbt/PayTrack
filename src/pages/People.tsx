@@ -1,586 +1,514 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import {
-    Plus,
-    Search,
-    Filter,
-    Edit2,
-    Eye,
-    Trash2,
-    Download,
-} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Plus, Search, Edit2, Trash2, Loader2, Download, Mail, Phone } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
-import {
-    Button,
-    Card,
-    Input,
-    Select,
-    Drawer,
-    Modal,
-    FilterPills,
-} from '../components/ui';
+import { useAuth } from '../contexts/AuthContext';
+import { Button, Card, Input, Select, Modal, FilterPills } from '../components/ui';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useIsMobile } from '../hooks/useResponsive';
-import type { Employee, EmployeeFormData, FilterPill } from '../lib/types';
-import { formatCurrency } from '../utils/salaryCalculator';
-import { formatDateReadable, exportToCSV } from '../lib/utils';
+import { formatDateReadable, todayIso } from '../lib/format';
+import { exportToCSV } from '../lib/utils';
+import type {
+    CreateEmployeeInput,
+    Employee,
+    EmployeeStatus,
+    FilterPill,
+    SystemRole,
+    UpdateEmployeeInput,
+} from '../lib/types';
 
 // ================================
-// People Directory
-// Employee table with filtering
+// People Directory (staff only)
+// Admin/HR see every row GET /employees returns; the API is the enforcer, this
+// page is the console. Deleting is ADMIN-only, matching DELETE /employees/:id.
 // ================================
 
-// Department options for dropdown
-const departments = [
-    { value: 'engineering', label: 'Engineering' },
-    { value: 'sales', label: 'Sales' },
-    { value: 'marketing', label: 'Marketing' },
-    { value: 'hr', label: 'HR' },
-    { value: 'finance', label: 'Finance' },
-    { value: 'operations', label: 'Operations' },
-    { value: 'labor', label: 'Labor' },
+const DEFAULT_DEPARTMENTS = [
+    'Engineering',
+    'Sales',
+    'Marketing',
+    'Human Resources',
+    'Finance',
+    'Operations',
+    'Product',
+    'Labor',
 ];
 
+interface FormState {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    department: string;
+    jobTitle: string;
+    systemRole: SystemRole;
+    joinDate: string;
+    status: EmployeeStatus;
+    baseSalary: string;
+    hra: string;
+    allowances: string;
+}
+
+const emptyForm = (): FormState => ({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    department: 'Engineering',
+    jobTitle: '',
+    systemRole: 'EMPLOYEE',
+    joinDate: todayIso(),
+    status: 'ACTIVE',
+    baseSalary: '',
+    hra: '0',
+    allowances: '0',
+});
+
 export function People() {
-    const { employees, addEmployee, updateEmployee, deleteEmployee, setSelectedEmployeeId } = useApp();
+    const { employees, loading, addEmployee, updateEmployee, deleteEmployee } = useApp();
+    const { user } = useAuth();
     const isMobile = useIsMobile();
-    const navigate = useNavigate();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedDepartment, setSelectedDepartment] = useState('');
-    const [selectedStatus, setSelectedStatus] = useState('');
-    const [showFilters, setShowFilters] = useState(false);
-    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-    // Sort employees by name client-side
-    const sortedEmployees = [...employees].sort((a, b) => a.name.localeCompare(b.name));
+    const [search, setSearch] = useState('');
+    const [department, setDepartment] = useState('');
+    const [status, setStatus] = useState('');
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editing, setEditing] = useState<Employee | null>(null);
+    const [form, setForm] = useState<FormState>(emptyForm);
+    const [saving, setSaving] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
 
-    // Build active filters for display
-    const activeFilters = useMemo(() => {
-        const filters: FilterPill[] = [];
-        if (selectedDepartment) {
-            filters.push({
-                id: 'department',
-                label: 'Department',
-                value: departments.find(d => d.value === selectedDepartment)?.label || selectedDepartment,
+    const departments = useMemo(
+        () => Array.from(new Set([...DEFAULT_DEPARTMENTS, ...employees.map((e) => e.department)])),
+        [employees]
+    );
+
+    const filtered = useMemo(() => {
+        const term = search.trim().toLowerCase();
+        return [...employees]
+            .sort((a, b) => a.fullName.localeCompare(b.fullName))
+            .filter((employee) => {
+                const matchesTerm =
+                    !term ||
+                    employee.fullName.toLowerCase().includes(term) ||
+                    employee.jobTitle.toLowerCase().includes(term) ||
+                    employee.email.toLowerCase().includes(term);
+                const matchesDepartment = !department || employee.department === department;
+                const matchesStatus = !status || employee.status === status;
+                return matchesTerm && matchesDepartment && matchesStatus;
             });
-        }
-        if (selectedStatus) {
-            filters.push({
-                id: 'status',
-                label: 'Status',
-                value: selectedStatus === 'active' ? 'Active' : 'Inactive',
-            });
-        }
-        return filters;
-    }, [selectedDepartment, selectedStatus]);
+    }, [employees, search, department, status]);
 
-    // Filter employees
-    const filteredEmployees = useMemo(() => {
-        return sortedEmployees.filter((emp) => {
-            const matchesSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                emp.role.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesDepartment = !selectedDepartment || emp.department.toLowerCase() === selectedDepartment;
-            const matchesStatus = !selectedStatus || emp.status === selectedStatus;
-            return matchesSearch && matchesDepartment && matchesStatus;
+    const filters: FilterPill[] = [];
+    if (department) filters.push({ id: 'department', label: 'Department', value: department });
+    if (status) filters.push({ id: 'status', label: 'Status', value: status });
+
+    const openCreate = () => {
+        setEditing(null);
+        setForm(emptyForm());
+        setFormError(null);
+        setIsFormOpen(true);
+    };
+
+    const openEdit = (employee: Employee) => {
+        setEditing(employee);
+        setForm({
+            firstName: employee.firstName,
+            lastName: employee.lastName,
+            email: employee.email,
+            phone: employee.phone ?? '',
+            department: employee.department,
+            jobTitle: employee.jobTitle,
+            systemRole: employee.systemRole,
+            joinDate: employee.joinDate.slice(0, 10),
+            status: employee.status,
+            baseSalary: '',
+            hra: '0',
+            allowances: '0',
         });
-    }, [sortedEmployees, searchQuery, selectedDepartment, selectedStatus]);
-
-    const handleRemoveFilter = (id: string) => {
-        if (id === 'department') setSelectedDepartment('');
-        if (id === 'status') setSelectedStatus('');
+        setFormError(null);
+        setIsFormOpen(true);
     };
 
-    const handleClearAllFilters = () => {
-        setSelectedDepartment('');
-        setSelectedStatus('');
-        setSearchQuery('');
-    };
-
-    const handleViewEmployee = (employee: Employee) => {
-        setSelectedEmployee(employee);
-        setIsDrawerOpen(true);
-    };
-
-    const handleAddEmployee = () => {
-        setEditingEmployee(null);
-        setIsModalOpen(true);
-    };
-
-    const handleEditEmployee = (employee: Employee) => {
-        setEditingEmployee(employee);
-        setIsModalOpen(true);
-    };
-
-    const handleSaveEmployee = async (data: EmployeeFormData) => {
+    const handleSave = async (event: React.FormEvent) => {
+        event.preventDefault();
+        setSaving(true);
+        setFormError(null);
         try {
-            if (editingEmployee) {
-                // Update existing in Firestore
-                await updateEmployee(editingEmployee.id, data);
+            if (editing) {
+                const updates: UpdateEmployeeInput = {
+                    firstName: form.firstName,
+                    lastName: form.lastName,
+                    email: form.email,
+                    phone: form.phone || undefined,
+                    department: form.department,
+                    role: form.jobTitle,
+                    systemRole: form.systemRole,
+                    joinDate: form.joinDate,
+                    status: form.status,
+                };
+                await updateEmployee(editing.employeeId, updates);
             } else {
-                // Add new to Firestore
-                await addEmployee({
-                    ...data,
-                    status: 'active',
-                });
+                const input: CreateEmployeeInput = {
+                    firstName: form.firstName,
+                    lastName: form.lastName,
+                    email: form.email,
+                    phone: form.phone || undefined,
+                    department: form.department,
+                    role: form.jobTitle,
+                    systemRole: form.systemRole,
+                    joinDate: form.joinDate,
+                    status: form.status,
+                    baseSalary: Number(form.baseSalary),
+                    hra: Number(form.hra || 0),
+                    allowances: Number(form.allowances || 0),
+                };
+                if (!Number.isFinite(input.baseSalary) || input.baseSalary < 0) {
+                    throw new Error('Base salary must be zero or more.');
+                }
+                await addEmployee(input);
             }
-            setIsModalOpen(false);
-        } catch (error) {
-            console.error('Error saving employee:', error);
-            alert('Failed to save employee. Please try again.');
+            setIsFormOpen(false);
+        } catch (err) {
+            setFormError(err instanceof Error ? err.message : 'Could not save the employee.');
+        } finally {
+            setSaving(false);
         }
     };
 
-    const handleDeleteEmployee = async (employee: Employee) => {
-        if (window.confirm(`Are you sure you want to delete ${employee.name}? This action cannot be undone.`)) {
-            try {
-                await deleteEmployee(employee.id);
-                // Clear the selected employee ID from context to prevent stale data in Attendance page
-                setSelectedEmployeeId(null);
-                setIsDrawerOpen(false);
-                setSelectedEmployee(null);
-            } catch (error) {
-                console.error('Error deleting employee:', error);
-                alert('Failed to delete employee. Please try again.');
-            }
+    const handleDelete = async (employee: Employee) => {
+        if (!window.confirm(`Delete ${employee.fullName}? Salary, attendance and payroll rows cascade with the employee.`)) {
+            return;
+        }
+        try {
+            await deleteEmployee(employee.employeeId);
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Could not delete the employee.');
         }
     };
 
-    const handleExportCSV = () => {
-        const exportData = filteredEmployees.map(emp => ({
-            'Employee ID': emp.id,
-            'Name': emp.name,
-            'Role': emp.role,
-            'Department': emp.department,
-            'Monthly Pay': emp.monthlyPay,
-            'Join Date': formatDateReadable(emp.joinDate),
-            'Status': emp.status,
-            'Email': emp.email || '',
-            'Phone': emp.phone || ''
-        }));
-        exportToCSV(exportData, `Employees_Export_${new Date().toISOString().split('T')[0]}`);
+    const handleExport = () => {
+        exportToCSV(
+            filtered.map((employee) => ({
+                'Employee ID': employee.employeeId,
+                Name: employee.fullName,
+                Email: employee.email,
+                Phone: employee.phone ?? '',
+                Role: employee.jobTitle,
+                Department: employee.department,
+                'System Role': employee.systemRole,
+                'Join Date': employee.joinDate,
+                Status: employee.status,
+            })),
+            `Employees_${todayIso()}`
+        );
     };
 
     return (
         <div className="space-y-6">
-            {/* Page Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black uppercase tracking-widest text-[--color-text-primary]">
-                        People
-                    </h1>
+                    <h1 className="text-3xl font-black uppercase tracking-widest text-[--color-text-primary] sm:text-4xl">People</h1>
                     <p className="text-[--color-text-secondary] mt-1 font-bold tracking-widest uppercase text-xs">
-                        Manage your {sortedEmployees.length} employees
+                        {employees.length} employees on record
                     </p>
                 </div>
-                <div className="flex gap-3">
-                    <Button variant="secondary" size="sm" onClick={handleExportCSV} className="border-2 border-[--color-border]">
+                <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={handleExport} className="border-2 border-[--color-border]">
                         <Download className="w-4 h-4" />
                         <span className="hidden sm:inline">Export</span>
                     </Button>
-                    <Button variant="primary" size="sm" onClick={handleAddEmployee} className="hidden sm:flex border-2 border-[--color-border]">
+                    <Button variant="primary" size="sm" onClick={openCreate}>
                         <Plus className="w-4 h-4" />
-                        Add Employee
+                        <span className="hidden sm:inline">Add employee</span>
                     </Button>
                 </div>
             </div>
 
-            {/* Filters Bar */}
             <Card padding="md">
                 <div className="flex flex-col gap-4">
-                    {/* Search - full width */}
                     <div className="relative w-full">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--color-text-muted]" />
                         <input
                             type="text"
-                            placeholder="Search by name or role..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="
-                  w-full h-9 pl-10 pr-4
-                  bg-[--color-bg-tertiary]
-                  border border-[--color-border]
-                  rounded-[--radius-md]
-                  text-sm text-[--color-text-primary]
-                  placeholder:text-[--color-text-muted]
-                  focus:outline-none focus:ring-2 focus:ring-[--color-focus]
-                "
+                            placeholder="Search by name, role or email..."
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            className="w-full h-10 pl-10 pr-4 bg-[--color-bg-tertiary] border-2 border-[--color-border]
+                                rounded-[--radius-md] text-sm text-[--color-text-primary]
+                                placeholder:text-[--color-text-muted] focus:outline-none focus:ring-2 focus:ring-[--color-focus]"
                         />
                     </div>
-
-                    {/* Quick Filters - stack on mobile */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                        <div className="grid grid-cols-2 sm:flex gap-2 flex-1">
-                            <Select
-                                options={[{ value: '', label: 'All Departments' }, ...departments]}
-                                value={selectedDepartment}
-                                onChange={(e) => setSelectedDepartment(e.target.value)}
-                                className="w-full sm:w-44"
-                            />
-                            <Select
-                                options={[
-                                    { value: '', label: 'All Status' },
-                                    { value: 'active', label: 'Active' },
-                                    { value: 'inactive', label: 'Inactive' },
-                                ]}
-                                value={selectedStatus}
-                                onChange={(e) => setSelectedStatus(e.target.value)}
-                                className="w-full sm:w-36"
-                            />
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => setShowFilters(!showFilters)} className="justify-center">
-                            <Filter className="w-4 h-4" />
-                            <span className="hidden sm:inline">More Filters</span>
+                    <div className="grid grid-cols-2 sm:flex gap-2">
+                        <Select
+                            options={[{ value: '', label: 'All departments' }, ...departments.map((d) => ({ value: d, label: d }))]}
+                            value={department}
+                            onChange={(event) => setDepartment(event.target.value)}
+                            className="w-full sm:w-52"
+                        />
+                        <Select
+                            options={[
+                                { value: '', label: 'All statuses' },
+                                { value: 'ACTIVE', label: 'Active' },
+                                { value: 'INACTIVE', label: 'Inactive' },
+                                { value: 'TERMINATED', label: 'Terminated' },
+                            ]}
+                            value={status}
+                            onChange={(event) => setStatus(event.target.value)}
+                            className="w-full sm:w-40"
+                        />
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                setDepartment('');
+                                setStatus('');
+                                setSearch('');
+                            }}
+                        >
+                            Clear
                         </Button>
                     </div>
-
-                    {/* Active Filter Pills */}
                     <FilterPills
-                        filters={activeFilters}
-                        onRemove={handleRemoveFilter}
-                        onClearAll={handleClearAllFilters}
+                        filters={filters}
+                        onRemove={(id) => {
+                            if (id === 'department') setDepartment('');
+                            if (id === 'status') setStatus('');
+                        }}
+                        onClearAll={() => {
+                            setDepartment('');
+                            setStatus('');
+                        }}
                     />
                 </div>
             </Card>
 
-            {/* Employee List - Responsive */}
-            {isMobile ? (
-                /* Mobile: Card List */
+            {loading && employees.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-[--color-accent-gold]" />
+                </div>
+            ) : isMobile ? (
                 <div className="space-y-3">
-                    {filteredEmployees.map((employee) => (
-                        <EmployeeCard
-                            key={employee.id}
-                            employee={employee}
-                            onClick={() => handleViewEmployee(employee)}
-                        />
+                    {filtered.map((employee) => (
+                        <EmployeeCard key={employee.employeeId} employee={employee} onClick={() => openEdit(employee)} />
                     ))}
-                    {filteredEmployees.length === 0 && (
-                        <div className="text-center py-12">
-                            <p className="text-[--color-text-muted]">No employees found</p>
-                            <Button variant="secondary" className="mt-4" onClick={handleAddEmployee}>
-                                <Plus className="w-4 h-4" />
-                                Add First Employee
-                            </Button>
-                        </div>
-                    )}
+                    {filtered.length === 0 && <p className="text-center py-12 text-[--color-text-muted]">No employees found</p>}
                 </div>
             ) : (
-                /* Desktop/Tablet: Table */
                 <Card padding="none">
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[900px]">
                             <thead>
                                 <tr className="border-b-2 border-[--color-border] bg-[--color-bg-secondary]">
-                                    <th scope="col" className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
-                                        Employee
-                                    </th>
-                                    <th scope="col" className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
-                                        Role
-                                    </th>
-                                    <th scope="col" className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
-                                        Department
-                                    </th>
-                                    <th scope="col" className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
-                                        Monthly Pay
-                                    </th>
-                                    <th scope="col" className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
-                                        Status
-                                    </th>
-                                    <th scope="col" className="text-right text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3">
-                                        Actions
-                                    </th>
+                                    {['Employee', 'Role', 'Department', 'Contact', 'Joined', 'Status', ''].map((heading) => (
+                                        <th
+                                            key={heading}
+                                            className="text-left text-xs font-medium text-[--color-text-muted] uppercase tracking-wider px-4 py-3"
+                                        >
+                                            {heading}
+                                        </th>
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody className="divide-y-2 divide-[--color-border]">
-                                {filteredEmployees.map((employee) => (
-                                    <tr
-                                        key={employee.id}
-                                        tabIndex={0}
-                                        className="hover:bg-[--color-bg-tertiary] focus-visible:bg-[--color-bg-tertiary] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-focus] transition-colors cursor-pointer"
-                                        onClick={() => handleViewEmployee(employee)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                handleViewEmployee(employee);
-                                            }
-                                        }}
-                                    >
+                                {filtered.map((employee) => (
+                                    <tr key={employee.employeeId} className="hover:bg-[--color-bg-tertiary] transition-colors">
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-9 h-9 rounded-full bg-[--color-accent-gold]/20 flex items-center justify-center text-[--color-accent-gold] font-medium">
-                                                    {employee.name.charAt(0)}
+                                                    {employee.firstName.charAt(0)}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-medium text-[--color-text-primary]">
-                                                        {employee.name}
-                                                    </p>
+                                                    <p className="text-sm font-medium text-[--color-text-primary]">{employee.fullName}</p>
                                                     <p className="text-xs text-[--color-text-muted]">
-                                                        Joined {formatDateReadable(employee.joinDate)}
+                                                        #{employee.employeeId} &bull; {employee.systemRole}
                                                     </p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-[--color-text-secondary]">
-                                            {employee.role}
+                                        <td className="px-4 py-3 text-sm text-[--color-text-secondary]">{employee.jobTitle}</td>
+                                        <td className="px-4 py-3 text-sm text-[--color-text-secondary]">{employee.department}</td>
+                                        <td className="px-4 py-3 text-xs text-[--color-text-secondary]">
+                                            <span className="flex items-center gap-1">
+                                                <Mail className="w-3 h-3" /> {employee.email}
+                                            </span>
+                                            {employee.phone && (
+                                                <span className="flex items-center gap-1 mt-0.5 text-[--color-text-muted]">
+                                                    <Phone className="w-3 h-3" /> {employee.phone}
+                                                </span>
+                                            )}
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-[--color-text-secondary]">
-                                            {employee.department}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm font-medium text-[--color-accent-gold]">
-                                            {formatCurrency(employee.monthlyPay)}
+                                        <td className="whitespace-nowrap px-4 py-3 text-sm text-[--color-text-secondary]">
+                                            {formatDateReadable(employee.joinDate)}
                                         </td>
                                         <td className="px-4 py-3">
                                             <span
-                                                className={`
-                                                    inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                                    ${employee.status === 'active'
+                                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                    employee.status === 'ACTIVE'
                                                         ? 'bg-[--color-success]/10 text-[--color-success]'
-                                                        : 'bg-[--color-text-muted]/10 text-[--color-text-muted]'
-                                                    }
-                                                `}
+                                                        : employee.status === 'TERMINATED'
+                                                            ? 'bg-[--color-danger]/10 text-[--color-danger]'
+                                                            : 'bg-[--color-text-muted]/10 text-[--color-text-muted]'
+                                                }`}
                                             >
-                                                {employee.status === 'active' ? 'Active' : 'Inactive'}
+                                                {employee.status}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-end gap-1">
                                                 <button
-                                                    onClick={() => handleViewEmployee(employee)}
-                                                    className="p-1.5 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-text-primary] hover:bg-[--color-bg-elevated] focus-visible:ring-2 focus-visible:ring-[--color-focus] transition-colors"
-                                                    aria-label="View employee"
-                                                >
-                                                    <Eye className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleEditEmployee(employee)}
-                                                    className="p-1.5 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-text-primary] hover:bg-[--color-bg-elevated] focus-visible:ring-2 focus-visible:ring-[--color-focus] transition-colors"
+                                                    onClick={() => openEdit(employee)}
+                                                    className="p-1.5 text-[--color-text-muted] hover:text-[--color-text-primary] hover:bg-[--color-bg-elevated]"
                                                     aria-label="Edit employee"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteEmployee(employee);
-                                                    }}
-                                                    className="p-1.5 rounded-[--radius-md] text-[--color-text-muted] hover:text-[--color-danger] hover:bg-[--color-danger]/10 focus-visible:ring-2 focus-visible:ring-[--color-danger] transition-colors"
-                                                    aria-label="Delete employee"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                {user?.systemRole === 'ADMIN' && employee.employeeId !== user.employeeId && (
+                                                    <button
+                                                        onClick={() => handleDelete(employee)}
+                                                        className="p-1.5 text-[--color-text-muted] hover:text-[--color-danger] hover:bg-[--color-danger]/10"
+                                                        aria-label="Delete employee"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-
-                        {filteredEmployees.length === 0 && (
-                            <div className="text-center py-12">
-                                <p className="text-[--color-text-muted]">No employees found</p>
-                            </div>
-                        )}
+                        {filtered.length === 0 && <p className="text-center py-12 text-[--color-text-muted]">No employees found</p>}
                     </div>
                 </Card>
             )}
 
-            {/* Employee Profile Drawer */}
-            <Drawer
-                isOpen={isDrawerOpen}
-                onClose={() => setIsDrawerOpen(false)}
-                title="Employee Profile"
-                width="lg"
-            >
-                {selectedEmployee && (
-                    <div className="space-y-6">
-                        {/* Header */}
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-[--color-accent-gold]/20 flex items-center justify-center text-2xl text-[--color-accent-gold] font-medium">
-                                {selectedEmployee.name.charAt(0)}
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-semibold text-[--color-text-primary]">
-                                    {selectedEmployee.name}
-                                </h3>
-                                <p className="text-[--color-text-secondary]">{selectedEmployee.role}</p>
-                            </div>
-                        </div>
-
-                        {/* Details */}
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-xs text-[--color-text-muted] uppercase">Department</p>
-                                    <p className="text-sm text-[--color-text-primary] mt-1">{selectedEmployee.department}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-[--color-text-muted] uppercase">Status</p>
-                                    <p className="text-sm text-[--color-text-primary] mt-1 capitalize">{selectedEmployee.status}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-[--color-text-muted] uppercase">Monthly Pay</p>
-                                    <p className="text-sm text-[--color-accent-gold] font-medium mt-1">
-                                        {formatCurrency(selectedEmployee.monthlyPay)}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-[--color-text-muted] uppercase">Joined</p>
-                                    <p className="text-sm text-[--color-text-primary] mt-1">
-                                        {formatDateReadable(selectedEmployee.joinDate)}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex gap-3 pt-4 border-t border-[--color-border]">
-                            <Button variant="primary" className="flex-1" onClick={() => {
-                                setIsDrawerOpen(false);
-                                handleEditEmployee(selectedEmployee);
-                            }}>
-                                <Edit2 className="w-4 h-4" />
-                                Edit Details
-                            </Button>
-                            <Button
-                                variant="secondary"
-                                className="flex-1"
-                                onClick={() => {
-                                    if (selectedEmployee) {
-                                        setSelectedEmployeeId(selectedEmployee.id);
-                                        navigate('/attendance');
-                                    }
-                                }}
-                            >
-                                View Attendance
-                            </Button>
-                            <Button
-                                variant="danger"
-                                className="flex-1"
-                                onClick={() => handleDeleteEmployee(selectedEmployee)}
-                            >
-                                <Trash2 className="w-4 h-4" />
-                                Delete
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </Drawer>
-
-            {/* Mobile FAB for Add Employee */}
-            {isMobile && (
-                <button
-                    onClick={handleAddEmployee}
-                    aria-label="Add Employee"
-                    className="fixed bottom-24 right-4 z-40 w-14 h-14 flex items-center justify-center bg-[--color-accent-gold] text-[--color-bg-primary] shadow-lg border-2 border-[--color-text-primary] hover:bg-[--color-accent-gold-hover] transition-colors"
-                >
-                    <Plus className="w-6 h-6" />
-                </button>
-            )}
-
-            {/* Add/Edit Employee Modal */}
             <Modal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title={editingEmployee ? 'Edit Employee' : 'Add New Employee'}
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                title={editing ? `Edit ${editing.fullName}` : 'Add employee'}
                 size="lg"
             >
-                <EmployeeForm
-                    employee={editingEmployee}
-                    onSave={handleSaveEmployee}
-                    onCancel={() => setIsModalOpen(false)}
-                />
+                <form onSubmit={handleSave} className="space-y-4">
+                    {formError && (
+                        <p className="text-sm text-[--color-danger] bg-[--color-danger]/10 border border-[--color-danger]/30 p-2">
+                            {formError}
+                        </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                        <Input
+                            label="First name"
+                            value={form.firstName}
+                            onChange={(event) => setForm({ ...form, firstName: event.target.value })}
+                            required
+                        />
+                        <Input
+                            label="Last name"
+                            value={form.lastName}
+                            onChange={(event) => setForm({ ...form, lastName: event.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <Input
+                            label="Email"
+                            type="email"
+                            value={form.email}
+                            onChange={(event) => setForm({ ...form, email: event.target.value })}
+                            required
+                        />
+                        <Input
+                            label="Phone"
+                            value={form.phone}
+                            onChange={(event) => setForm({ ...form, phone: event.target.value })}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <Select
+                            label="Department"
+                            options={departments.map((d) => ({ value: d, label: d }))}
+                            value={form.department}
+                            onChange={(event) => setForm({ ...form, department: event.target.value })}
+                        />
+                        <Input
+                            label="Job title"
+                            value={form.jobTitle}
+                            onChange={(event) => setForm({ ...form, jobTitle: event.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                        <Select
+                            label="System role"
+                            options={[
+                                { value: 'EMPLOYEE', label: 'Employee' },
+                                { value: 'HR', label: 'HR' },
+                                { value: 'ADMIN', label: 'Admin' },
+                            ]}
+                            value={form.systemRole}
+                            onChange={(event) => setForm({ ...form, systemRole: event.target.value as SystemRole })}
+                        />
+                        <Select
+                            label="Status"
+                            options={[
+                                { value: 'ACTIVE', label: 'Active' },
+                                { value: 'INACTIVE', label: 'Inactive' },
+                                { value: 'TERMINATED', label: 'Terminated' },
+                            ]}
+                            value={form.status}
+                            onChange={(event) => setForm({ ...form, status: event.target.value as EmployeeStatus })}
+                        />
+                        <Input
+                            label="Join date"
+                            type="date"
+                            value={form.joinDate}
+                            onChange={(event) => setForm({ ...form, joinDate: event.target.value })}
+                            required
+                        />
+                    </div>
+
+                    {!editing && (
+                        <div className="grid grid-cols-3 gap-3">
+                            <Input
+                                label="Base salary"
+                                type="number"
+                                min="0"
+                                value={form.baseSalary}
+                                onChange={(event) => setForm({ ...form, baseSalary: event.target.value })}
+                                required
+                            />
+                            <Input
+                                label="HRA"
+                                type="number"
+                                min="0"
+                                value={form.hra}
+                                onChange={(event) => setForm({ ...form, hra: event.target.value })}
+                            />
+                            <Input
+                                label="Allowances"
+                                type="number"
+                                min="0"
+                                value={form.allowances}
+                                onChange={(event) => setForm({ ...form, allowances: event.target.value })}
+                            />
+                        </div>
+                    )}
+
+                    <p className="text-xs text-[--color-text-muted]">
+                        {editing
+                            ? 'Salary packages are immutable history; create a new package through the database rather than editing an existing payslip.'
+                            : 'The employee and its active Salary row are written in one transaction by the API.'}
+                    </p>
+
+                    <div className="flex gap-3 pt-2">
+                        <Button type="button" variant="secondary" className="flex-1" onClick={() => setIsFormOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" variant="primary" className="flex-1" isLoading={saving}>
+                            {editing ? 'Save changes' : 'Add employee'}
+                        </Button>
+                    </div>
+                </form>
             </Modal>
         </div>
-    );
-}
-
-// Employee Form Schema
-const employeeSchema = z.object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    role: z.string().min(2, "Role must be at least 2 characters"),
-    department: z.string().min(1, "Department is required"),
-    monthlyPay: z.coerce.number().min(1, "Monthly pay must be greater than 0"),
-    joinDate: z.string().min(1, "Join date is required"),
-    email: z.string().optional(),
-    phone: z.string().optional(),
-    notes: z.string().optional(),
-});
-
-type EmployeeFormValues = z.infer<typeof employeeSchema>;
-
-// Employee Form Component
-interface EmployeeFormProps {
-    employee?: Employee | null;
-    onSave: (data: EmployeeFormData) => void;
-    onCancel: () => void;
-}
-
-function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) {
-    const { register, handleSubmit, formState: { errors } } = useForm<EmployeeFormValues>({
-        resolver: zodResolver(employeeSchema) as any,
-        defaultValues: {
-            name: employee?.name || '',
-            role: employee?.role || '',
-            department: employee?.department || '',
-            monthlyPay: employee?.monthlyPay || 0,
-            joinDate: employee?.joinDate || new Date().toISOString().split('T')[0],
-            email: employee?.email || '',
-            phone: employee?.phone || '',
-            notes: employee?.notes || '',
-        }
-    });
-
-    const onSubmit = (data: EmployeeFormValues) => {
-        onSave(data as EmployeeFormData);
-    };
-
-    return (
-        <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4">
-            <Input
-                label="Full Name"
-                error={errors.name?.message}
-                {...register('name')}
-            />
-            <div className="grid grid-cols-2 gap-4">
-                <Input
-                    label="Role"
-                    error={errors.role?.message}
-                    {...register('role')}
-                />
-                <Select
-                    label="Department"
-                    options={departments}
-                    error={errors.department?.message}
-                    {...register('department')}
-                />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <Input
-                    label="Monthly Pay (₹)"
-                    type="number"
-                    error={errors.monthlyPay?.message}
-                    {...register('monthlyPay')}
-                />
-                <Input
-                    label="Join Date"
-                    type="date"
-                    error={errors.joinDate?.message}
-                    {...register('joinDate')}
-                />
-            </div>
-            <div className="flex gap-3 pt-4">
-                <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>
-                    Cancel
-                </Button>
-                <Button type="submit" variant="primary" className="flex-1">
-                    {employee ? 'Save Changes' : 'Add Employee'}
-                </Button>
-            </div>
-        </form>
     );
 }

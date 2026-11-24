@@ -69,10 +69,15 @@ export function AppShell({ children }: AppShellProps) {
                     isDesktop && (sidebarCollapsed ? 'pt-16 pl-16' : 'pt-16 pl-60')
                 )}
             >
-                <div className={cn(
-                    'transition-all duration-[--transition-normal]',
-                    isMobile ? 'p-4' : 'p-6'
-                )}>
+                <div
+                    className={cn(
+                        'mx-auto w-full max-w-[1400px] transition-all duration-[--transition-normal]',
+                        // One gutter scale for every page: 16 → 24 → 32px,
+                        // with matching vertical rhythm, so headings and table
+                        // edges line up across routes and at every width.
+                        isMobile ? 'px-4 py-5' : 'px-6 py-6 lg:px-8'
+                    )}
+                >
                     {children}
                 </div>
             </main>

@@ -5,6 +5,10 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 // ================================
 // MetricCard Component
 // KPI display for dashboard
+// The value uses a clamped font size so long currency strings
+// (₹11,33,930.36) never force a horizontal scrollbar in the 2-column
+// mobile grid, and the icon sits out of the text flow so the label and
+// value always get the full card width.
 // ================================
 
 export interface MetricCardProps {
@@ -53,8 +57,8 @@ export function MetricCard({
     return (
         <div
             className={cn(
-                `
-          p-4 relative
+                `group relative flex h-full min-w-0 flex-col
+          p-4
           bg-[--color-bg-secondary]
           border-2 border-[--color-border]
           rounded-[--radius-lg]
@@ -64,26 +68,38 @@ export function MetricCard({
                 className
             )}
         >
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold uppercase tracking-widest text-[--color-text-secondary] truncate">{label}</p>
-                    <p className={cn('text-3xl font-bold mt-2', accentColors[accentColor].split(' ')[0])}>
-                        {value}
-                    </p>
-                    {trend && (
-                        <div className={cn('flex items-center gap-1 mt-2 text-xs font-bold', getTrendColor())}>
-                            {getTrendIcon()}
-                            <span>{Math.abs(trend.value)}%</span>
-                            <span className="text-[--color-text-muted] uppercase tracking-wider text-[10px]">vs last month</span>
-                        </div>
+            {icon && (
+                <div
+                    className={cn(
+                        'absolute right-3 top-3 flex h-8 w-8 items-center justify-center border-2 border-[--color-border] opacity-80 [&>svg]:h-4 [&>svg]:w-4',
+                        accentColors[accentColor].split(' ')[1]
                     )}
+                    aria-hidden="true"
+                >
+                    {icon}
                 </div>
-                {icon && (
-                    <div className={cn("p-3 border-2 border-[--color-border] rounded-none opacity-80", accentColors[accentColor].split(' ')[1])}>
-                        {icon}
-                    </div>
+            )}
+
+            <p className="min-h-[2.4em] pr-12 text-[10px] font-bold uppercase leading-snug tracking-[0.14em] text-[--color-text-secondary] sm:text-[11px]">
+                {label}
+            </p>
+
+            <p
+                className={cn(
+                    'mt-1 break-words text-[clamp(1.05rem,4.6vw,1.75rem)] font-bold leading-none tracking-tight tabular-nums',
+                    accentColors[accentColor].split(' ')[0]
                 )}
-            </div>
+            >
+                {value}
+            </p>
+
+            {trend && (
+                <div className={cn('mt-3 flex flex-wrap items-center gap-1 text-xs font-bold', getTrendColor())}>
+                    {getTrendIcon()}
+                    <span>{Math.abs(trend.value)}%</span>
+                    <span className="text-[10px] uppercase tracking-wider text-[--color-text-muted]">vs last month</span>
+                </div>
+            )}
         </div>
     );
 }

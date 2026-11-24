@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import {
     BarChart,
     Bar,
@@ -7,40 +6,26 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Cell
+    Cell,
 } from 'recharts';
-import { useApp } from '../contexts/AppContext';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/Card';
+import { formatCurrency } from '../lib/format';
+import type { TrendPoint } from '../lib/types';
 
-export function PayrollTrendChart() {
-    const { payroll, currentMonth } = useApp();
+// ================================
+// Payroll Trend Chart
+// Data comes from the API (six monthly payroll reads), so the chart shows the
+// same net figures as the payroll page rather than a client-side estimate.
+// ================================
 
-    const chartData = useMemo(() => {
-        // Get the last 6 months based on currentMonth
-        const result = [];
-        const baseDate = new Date(`${currentMonth}-01T00:00:00`);
+interface PayrollTrendChartProps {
+    data: TrendPoint[];
+    currentMonth: string;
+    scope: 'ORG' | 'SELF';
+}
 
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date(baseDate.getFullYear(), baseDate.getMonth() - i, 1);
-            const monthStr = d.toISOString().slice(0, 7);
-            const monthLabel = d.toLocaleDateString('en-US', { month: 'short' });
-
-            // Sum net pay for this month
-            const monthlyTotal = payroll
-                .filter(p => p.month === monthStr)
-                .reduce((sum, p) => sum + p.netPay, 0);
-
-            result.push({
-                name: monthLabel,
-                month: monthStr,
-                total: monthlyTotal
-            });
-        }
-        return result;
-    }, [payroll, currentMonth]);
-
-    // Check if we have any data to show
-    const hasData = chartData.some(d => d.total > 0);
+export function PayrollTrendChart({ data, currentMonth, scope }: PayrollTrendChartProps) {
+    const hasData = data.some((point) => point.total > 0);
 
     return (
         <Card padding="md" className="h-full">
@@ -48,17 +33,19 @@ export function PayrollTrendChart() {
                 <CardTitle>Payroll Trends</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="h-[300px] w-full">
+                <div className="h-[300px] w-full min-w-0">
                     {!hasData ? (
                         <div className="h-full flex items-center justify-center text-[--color-text-muted] font-bold uppercase tracking-widest text-sm text-center">
-                            No payroll data yet.<br />Generate payroll to see trends.
+                            No payroll data yet.
+                            <br />
+                            {scope === 'ORG' ? 'Generate payroll to see trends.' : 'Payslips appear once payroll is run.'}
                         </div>
                     ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={50}>
+                            <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
                                 <XAxis
-                                    dataKey="name"
+                                    dataKey="label"
                                     axisLine={false}
                                     tickLine={false}
                                     tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
@@ -68,7 +55,7 @@ export function PayrollTrendChart() {
                                     axisLine={false}
                                     tickLine={false}
                                     tick={{ fill: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 'bold' }}
-                                    tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                                    tickFormatter={(value: number) => `₹${value.toLocaleString('en-IN')}`}
                                 />
                                 <Tooltip
                                     cursor={{ fill: 'var(--color-bg-tertiary)' }}
@@ -77,15 +64,15 @@ export function PayrollTrendChart() {
                                         border: '2px solid var(--color-border)',
                                         borderRadius: '0',
                                         boxShadow: '4px 4px 0 0 var(--color-border)',
-                                        fontWeight: 'bold'
+                                        fontWeight: 'bold',
                                     }}
-                                    formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, 'Net Payout']}
+                                    formatter={(value) => [formatCurrency(Number(value)), 'Net payout']}
                                 />
                                 <Bar dataKey="total" radius={[2, 2, 0, 0]}>
-                                    {chartData.map((entry, index) => (
+                                    {data.map((point) => (
                                         <Cell
-                                            key={`cell-${index}`}
-                                            fill={entry.month === currentMonth ? 'var(--color-text-primary)' : 'var(--color-accent-gold)'}
+                                            key={point.month}
+                                            fill={point.month === currentMonth ? 'var(--color-text-primary)' : 'var(--color-accent-gold)'}
                                         />
                                     ))}
                                 </Bar>

@@ -1,153 +1,201 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { Employee, AttendanceRecord, PayrollEntry, ShiftConfig, Holiday, AppSettings } from '../lib/types';
-import { getDefaultShiftConfig } from '../utils/salaryCalculator';
-import { useEmployees, useAttendance, usePayroll } from '../hooks/useFirestore';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { api, ApiError } from '../lib/api';
+import { formatMonthShort, monthKey, recentMonths } from '../lib/format';
+import { useAuth } from './AuthContext';
+import type {
+    AttendanceRecord,
+    CreateAttendanceInput,
+    CreateEmployeeInput,
+    Dashboard,
+    Employee,
+    MonthlyReport,
+    PayrollEntry,
+    PayrollStatus,
+    TrendPoint,
+    UpdateAttendanceInput,
+    UpdateEmployeeInput,
+} from '../lib/types';
 
 // ================================
 // App Context
-// Global state with Firestore sync
+// Reads flow through the REST API (which reads the Phase 3 report views and
+// Phase 4 secure views); writes go through the API so the Phase 2 triggers and
+// Phase 4 transaction rules stay the single source of truth. Employee scope is
+// enforced by the server, not by hiding rows here.
 // ================================
 
 interface AppContextValue {
-    // Employees (from Firestore)
     employees: Employee[];
-    employeesLoading: boolean;
-    addEmployee: (employee: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
-    updateEmployee: (id: string, updates: Partial<Employee>) => Promise<void>;
-    deleteEmployee: (id: string) => Promise<void>;
-
-    // Attendance (from Firestore)
     attendance: AttendanceRecord[];
-    attendanceLoading: boolean;
-    markAttendance: (record: Omit<AttendanceRecord, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-    updateAttendance: (id: string, updates: Partial<AttendanceRecord>) => Promise<void>;
-
-    // Payroll (from Firestore)
     payroll: PayrollEntry[];
-    payrollLoading: boolean;
-    createPayrollEntry: (entry: Omit<PayrollEntry, 'id' | 'generatedAt'>) => Promise<void>;
-    updatePayrollEntry: (id: string, updates: Partial<PayrollEntry>) => Promise<void>;
+    dashboard: Dashboard | null;
+    report: MonthlyReport | null;
+    trend: TrendPoint[];
+    loading: boolean;
+    error: string | null;
 
-    // Settings (local for now)
-    shiftConfig: ShiftConfig;
-    setShiftConfig: React.Dispatch<React.SetStateAction<ShiftConfig>>;
-    holidays: Holiday[];
-    setHolidays: React.Dispatch<React.SetStateAction<Holiday[]>>;
-    settings: AppSettings;
-    setSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
-
-    // UI State
-    selectedEmployeeId: string | null;
-    setSelectedEmployeeId: (id: string | null) => void;
     currentMonth: string;
     setCurrentMonth: (month: string) => void;
 
-    // Legacy setters for compatibility
-    setEmployees: React.Dispatch<React.SetStateAction<Employee[]>>;
-    setAttendance: React.Dispatch<React.SetStateAction<AttendanceRecord[]>>;
-    setPayroll: React.Dispatch<React.SetStateAction<PayrollEntry[]>>;
+    addEmployee: (input: CreateEmployeeInput) => Promise<void>;
+    updateEmployee: (id: number, input: UpdateEmployeeInput) => Promise<void>;
+    deleteEmployee: (id: number) => Promise<void>;
+
+    markAttendance: (input: CreateAttendanceInput) => Promise<void>;
+    updateAttendance: (id: number, input: UpdateAttendanceInput) => Promise<void>;
+
+    generatePayroll: () => Promise<{ generated: number; recalculated: number }>;
+    setPayrollStatus: (id: number, status: PayrollStatus) => Promise<void>;
+
+    refresh: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 
-const defaultSettings: AppSettings = {
-    defaultShiftId: 'default',
-    companyName: 'PayTrack',
-    currency: 'INR',
-    currencySymbol: '₹',
-    theme: 'dark',
-    reducedMotion: false,
-};
+async function loadTrend(endMonth: string, staff: boolean): Promise<TrendPoint[]> {
+    const months = recentMonths(endMonth, 6);
+    return Promise.all(
+        months.map(async (month) => {
+            const data = staff ? await api.payroll(month) : await api.myPayroll(month);
+            const total = data.payroll.reduce((sum, entry) => sum + entry.netSalary, 0);
+            return {
+                month,
+                label: formatMonthShort(month),
+                total: Math.round(total * 100) / 100,
+            };
+        })
+    );
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
-    // UI State
+    const { user } = useAuth();
     const [currentMonth, setCurrentMonth] = useState(() => new Date().toISOString().slice(0, 7));
-    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
 
-    // Firestore hooks
-    const {
-        employees: firestoreEmployees,
-        loading: employeesLoading,
-        addEmployee,
-        updateEmployee,
-        deleteEmployee,
-    } = useEmployees();
-
-    const {
-        attendance: firestoreAttendance,
-        loading: attendanceLoading,
-        markAttendance,
-        updateAttendance,
-    } = useAttendance(currentMonth);
-
-    const {
-        payroll: firestorePayroll,
-        loading: payrollLoading,
-        createPayrollEntry,
-        updatePayrollEntry,
-    } = usePayroll(currentMonth);
-
-    // Local state for data (synced from Firestore)
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [payroll, setPayroll] = useState<PayrollEntry[]>([]);
+    const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+    const [report, setReport] = useState<MonthlyReport | null>(null);
+    const [trend, setTrend] = useState<TrendPoint[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    // The demo dataset ends 2026-10. Opening on an empty current month would
+    // look broken, so the very first load steps back one month once; later
+    // month choices are never overridden.
+    const resolvedInitialMonth = useRef(false);
 
-    // Settings (local for now - can be moved to Firestore later)
-    const [shiftConfig, setShiftConfig] = useState<ShiftConfig>(getDefaultShiftConfig());
-    const [holidays, setHolidays] = useState<Holiday[]>([]);
-    const [settings, setSettings] = useState<AppSettings>(defaultSettings);
+    const refresh = useCallback(async () => {
+        if (!user) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const staff = user.isStaff;
+            const [employeeData, attendanceData, payrollData, dashboardData, reportData, trendData] =
+                await Promise.all([
+                    api.employees(),
+                    api.attendance(currentMonth),
+                    staff ? api.payroll(currentMonth) : api.myPayroll(currentMonth),
+                    api.dashboard(currentMonth),
+                    staff ? api.monthlyReport(currentMonth) : Promise.resolve(null),
+                    loadTrend(currentMonth, staff),
+                ]);
+            setEmployees(employeeData.employees);
+            setAttendance(attendanceData.attendance);
+            setPayroll(payrollData.payroll);
+            setDashboard(dashboardData);
+            setReport(reportData);
+            setTrend(trendData);
 
-    // Sync Firestore data to local state
+            if (!resolvedInitialMonth.current) {
+                resolvedInitialMonth.current = true;
+                const emptyMonth =
+                    dashboardData.attendance.presentDays === 0 && dashboardData.payroll.slips === 0;
+                if (emptyMonth && currentMonth === monthKey()) {
+                    const [year, monthNumber] = currentMonth.split('-').map(Number);
+                    const previous = new Date(year, monthNumber - 2, 1);
+                    setCurrentMonth(
+                        `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, '0')}`
+                    );
+                }
+            }
+        } catch (err) {
+            setError(err instanceof ApiError ? err.message : 'Could not load PayTrack data.');
+        } finally {
+            setLoading(false);
+        }
+    }, [user, currentMonth]);
+
     useEffect(() => {
-        setEmployees(firestoreEmployees);
-    }, [firestoreEmployees]);
+        if (!user) {
+            setEmployees([]);
+            setAttendance([]);
+            setPayroll([]);
+            setDashboard(null);
+            setReport(null);
+            setTrend([]);
+            setError(null);
+            return;
+        }
+        void refresh();
+    }, [user, refresh]);
 
-    useEffect(() => {
-        setAttendance(firestoreAttendance);
-    }, [firestoreAttendance]);
+    const addEmployee = async (input: CreateEmployeeInput) => {
+        await api.createEmployee(input);
+        await refresh();
+    };
 
-    useEffect(() => {
-        setPayroll(firestorePayroll);
-    }, [firestorePayroll]);
+    const updateEmployee = async (id: number, input: UpdateEmployeeInput) => {
+        await api.updateEmployee(id, input);
+        await refresh();
+    };
+
+    const deleteEmployee = async (id: number) => {
+        await api.deleteEmployee(id);
+        await refresh();
+    };
+
+    const markAttendance = async (input: CreateAttendanceInput) => {
+        await api.createAttendance(input);
+        await refresh();
+    };
+
+    const updateAttendance = async (id: number, input: UpdateAttendanceInput) => {
+        await api.updateAttendance(id, input);
+        await refresh();
+    };
+
+    const generatePayroll = async () => {
+        const result = await api.generatePayroll(currentMonth);
+        await refresh();
+        return { generated: result.generated, recalculated: result.recalculated };
+    };
+
+    const setPayrollStatus = async (id: number, status: PayrollStatus) => {
+        await api.setPayrollStatus(id, status);
+        await refresh();
+    };
 
     return (
         <AppContext.Provider
             value={{
-                // Employees
                 employees,
-                employeesLoading,
+                attendance,
+                payroll,
+                dashboard,
+                report,
+                trend,
+                loading,
+                error,
+                currentMonth,
+                setCurrentMonth,
                 addEmployee,
                 updateEmployee,
                 deleteEmployee,
-                setEmployees,
-
-                // Attendance
-                attendance,
-                attendanceLoading,
                 markAttendance,
                 updateAttendance,
-                setAttendance,
-
-                // Payroll
-                payroll,
-                payrollLoading,
-                createPayrollEntry,
-                updatePayrollEntry,
-                setPayroll,
-
-                // Settings
-                shiftConfig,
-                setShiftConfig,
-                holidays,
-                setHolidays,
-                settings,
-                setSettings,
-
-                // UI State
-                selectedEmployeeId,
-                setSelectedEmployeeId,
-                currentMonth,
-                setCurrentMonth,
+                generatePayroll,
+                setPayrollStatus,
+                refresh,
             }}
         >
             {children}
@@ -155,10 +203,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
 }
 
-export function useApp() {
+export function useApp(): AppContextValue {
     const context = useContext(AppContext);
-    if (!context) {
-        throw new Error('useApp must be used within an AppProvider');
-    }
+    if (!context) throw new Error('useApp must be used within an AppProvider');
     return context;
 }

@@ -1,342 +1,189 @@
-import { useState, useRef } from 'react';
-import {
-    Save,
-    Download,
-    Upload,
-    Sun,
-    Moon,
-    Monitor,
-    Loader2,
-    AlertTriangle,
-} from 'lucide-react';
+import { useState } from 'react';
+import { Save, Download, Sun, Moon, Monitor, AlertTriangle, Server } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
-import { Button, Card, CardHeader, CardTitle, CardContent, Input, Select } from '../components/ui';
+import { Button, Card, CardHeader, CardTitle, CardContent } from '../components/ui';
+import { API_BASE_URL } from '../lib/api';
+import { todayIso } from '../lib/format';
+import { exportToCSV } from '../lib/utils';
 
 // ================================
-// Settings Page
-// App configuration with import/export
+// Settings
+// Appearance and a client-side export of what the API returned. There is no
+// local mutation of payroll or attendance here: all writes belong to the
+// Phase 4 transaction rules, so this page does not offer an "import" that
+// could bypass them.
 // ================================
 
 export function Settings() {
     const { theme, setTheme } = useTheme();
-    const {
-        shiftConfig, setShiftConfig,
-        settings, setSettings,
-        employees,
-        attendance,
-        payroll,
-        addEmployee,
-        markAttendance,
-    } = useApp();
+    const { user } = useAuth();
+    const { employees, attendance, payroll, currentMonth } = useApp();
+    const [savedAt, setSavedAt] = useState<string | null>(null);
 
-    const [localShiftConfig, setLocalShiftConfig] = useState(shiftConfig);
-    const [localSettings, setLocalSettings] = useState(settings);
-    const [isSaving, setIsSaving] = useState(false);
-    const [isExporting, setIsExporting] = useState(false);
-    const [isImporting, setIsImporting] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleSave = async () => {
-        setIsSaving(true);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setShiftConfig(localShiftConfig);
-        setSettings(localSettings);
-        setIsSaving(false);
+    const handleExportEmployees = () => {
+        exportToCSV(
+            employees.map((employee) => ({
+                'Employee ID': employee.employeeId,
+                Name: employee.fullName,
+                Email: employee.email,
+                Phone: employee.phone ?? '',
+                Role: employee.jobTitle,
+                Department: employee.department,
+                'System Role': employee.systemRole,
+                Joined: employee.joinDate,
+                Status: employee.status,
+            })),
+            `PayTrack_Employees_${todayIso()}`
+        );
     };
 
-    const handleExport = async () => {
-        setIsExporting(true);
-        try {
-            const data = {
-                exportDate: new Date().toISOString(),
-                version: '1.0.0',
-                employees: employees,
-                attendance: attendance,
-                payroll: payroll,
-                settings: localSettings,
-                shiftConfig: localShiftConfig,
-            };
-
-            const json = JSON.stringify(data, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `paytrack-backup-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Export failed:', error);
-            alert('Export failed. Please try again.');
-        } finally {
-            setIsExporting(false);
-        }
+    const handleExportAttendance = () => {
+        exportToCSV(
+            attendance.map((record) => ({
+                Date: record.date,
+                Employee: record.employeeName ?? record.employeeId,
+                Status: record.status,
+                In: record.checkInTime ?? '',
+                Out: record.checkOutTime ?? '',
+                Hours: record.hoursWorked,
+                Overtime: record.overtimeHours,
+                Late: record.isLate ? 'yes' : 'no',
+                'Late minutes': record.lateMinutes,
+            })),
+            `PayTrack_Attendance_${currentMonth}`
+        );
     };
 
-    const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    const handleExportPayroll = () => {
+        exportToCSV(
+            payroll.map((entry) => ({
+                Payslip: entry.payrollId,
+                Employee: entry.employeeName,
+                Period: entry.month,
+                Gross: entry.grossSalary,
+                TDS: entry.taxDeduction,
+                'Unpaid leave': entry.unpaidLeaveDeduction,
+                Net: entry.netSalary,
+                Status: entry.status,
+                Paid: entry.paymentDate ?? '',
+            })),
+            `PayTrack_Payroll_${currentMonth}`
+        );
+    };
 
-        setIsImporting(true);
-        try {
-            const text = await file.text();
-            const data = JSON.parse(text);
-
-            // Validate data structure
-            if (!data.employees || !Array.isArray(data.employees)) {
-                throw new Error('Invalid backup file: missing employees data');
-            }
-
-            // Confirm import
-            const confirmed = window.confirm(
-                `This will import ${data.employees.length} employees, ${data.attendance?.length || 0} attendance records, and ${data.payroll?.length || 0} payroll entries. Continue?`
-            );
-
-            if (!confirmed) {
-                setIsImporting(false);
-                return;
-            }
-
-            // Import employees
-            for (const emp of data.employees) {
-                const { id, createdAt, updatedAt, ...employeeData } = emp;
-                await addEmployee(employeeData);
-            }
-
-            // Import attendance
-            if (data.attendance) {
-                for (const record of data.attendance) {
-                    const { id, createdAt, updatedAt, ...attendanceData } = record;
-                    await markAttendance(attendanceData);
-                }
-            }
-
-            // Import settings
-            if (data.settings) {
-                setSettings(data.settings);
-            }
-            if (data.shiftConfig) {
-                setShiftConfig(data.shiftConfig);
-            }
-
-            alert('Import completed successfully!');
-        } catch (error) {
-            console.error('Import failed:', error);
-            alert(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        } finally {
-            setIsImporting(false);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-        }
+    const handleSave = () => {
+        setSavedAt(new Date().toLocaleTimeString());
     };
 
     return (
         <div className="space-y-6 max-w-4xl">
-            {/* Page Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black uppercase tracking-widest text-[--color-text-primary]">
-                        Settings
-                    </h1>
+                    <h1 className="text-3xl font-black uppercase tracking-widest text-[--color-text-primary] sm:text-4xl">Settings</h1>
                     <p className="text-[--color-text-secondary] mt-1 text-xs font-bold uppercase tracking-widest">
-                        Configure your salary tracker
+                        Appearance, exports and connection details
                     </p>
                 </div>
-                <Button variant="primary" size="sm" onClick={handleSave} isLoading={isSaving}>
-                    <Save className="w-4 h-4" />
-                    Save Changes
+                <Button variant="primary" size="sm" onClick={handleSave}>
+                    <Save className="w-4 h-4" /> Save
                 </Button>
             </div>
 
-            {/* Appearance */}
+            {savedAt && (
+                <p className="text-xs text-[--color-success] uppercase tracking-widest">Preferences saved at {savedAt}</p>
+            )}
+
             <Card padding="md">
                 <CardHeader>
                     <CardTitle>Appearance</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div>
-                        <label className="text-sm font-medium text-[--color-text-secondary] mb-3 block">
-                            Theme
-                        </label>
-                        <div className="flex gap-3">
-                            {[
-                                { value: 'dark', label: 'Dark', icon: Moon },
-                                { value: 'light', label: 'Light', icon: Sun },
-                                { value: 'system', label: 'System', icon: Monitor },
-                            ].map((option) => {
-                                const Icon = option.icon;
-                                return (
-                                    <button
-                                        key={option.value}
-                                        onClick={() => setTheme(option.value as typeof theme)}
-                                        className={`
-                                            flex items-center gap-2 px-4 py-2.5
-                                            rounded-[--radius-md] border
-                                            transition-all
-                                            ${theme === option.value
-                                                ? 'border-[--color-accent-gold] bg-[--color-accent-gold]/10 text-[--color-accent-gold]'
-                                                : 'border-[--color-border] text-[--color-text-secondary] hover:border-[--color-border-subtle] hover:bg-[--color-bg-tertiary]'
-                                            }
-                                        `}
-                                    >
-                                        <Icon className="w-4 h-4" />
-                                        <span className="text-sm font-medium">{option.label}</span>
-                                    </button>
-                                );
-                            })}
+                <CardContent>
+                    <div className="flex gap-3 flex-wrap">
+                        {[
+                            { value: 'dark', label: 'Dark', icon: Moon },
+                            { value: 'light', label: 'Light', icon: Sun },
+                            { value: 'system', label: 'System', icon: Monitor },
+                        ].map((option) => {
+                            const Icon = option.icon;
+                            return (
+                                <button
+                                    key={option.value}
+                                    onClick={() => setTheme(option.value as typeof theme)}
+                                    className={`flex items-center gap-2 px-4 py-2.5 border rounded-[--radius-md] transition-all ${
+                                        theme === option.value
+                                            ? 'border-[--color-accent-gold] bg-[--color-accent-gold]/10 text-[--color-accent-gold]'
+                                            : 'border-[--color-border] text-[--color-text-secondary] hover:bg-[--color-bg-tertiary]'
+                                    }`}
+                                >
+                                    <Icon className="w-4 h-4" />
+                                    <span className="text-sm font-medium">{option.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card padding="md">
+                <CardHeader>
+                    <CardTitle>Connection</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    <div className="flex items-start gap-3">
+                        <Server className="w-4 h-4 text-[--color-text-muted] mt-0.5" />
+                        <div>
+                            <p className="text-[--color-text-primary] font-mono break-all">{API_BASE_URL}</p>
+                            <p className="text-xs text-[--color-text-muted] mt-1">
+                                Set <code>VITE_API_URL</code> to point the UI at another API host. The server reads
+                                SQLite, enforces roles, and never sends credentials to the browser.
+                            </p>
                         </div>
                     </div>
+                    <p className="text-xs text-[--color-text-muted]">
+                        Signed in as {user?.email} ({user?.systemRole}). Session tokens are stored hashed in the
+                        Session table and expire after 12 hours.
+                    </p>
                 </CardContent>
             </Card>
 
-            {/* Shift Configuration */}
             <Card padding="md">
                 <CardHeader>
-                    <CardTitle>Shift Configuration</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Hours Per Day"
-                            type="number"
-                            value={localShiftConfig.hoursPerDay}
-                            onChange={(e) =>
-                                setLocalShiftConfig({
-                                    ...localShiftConfig,
-                                    hoursPerDay: Number(e.target.value),
-                                })
-                            }
-                            hint="Standard working hours per day"
-                        />
-                        <Input
-                            label="Working Days Per Month"
-                            type="number"
-                            value={localShiftConfig.workingDaysPerMonth}
-                            onChange={(e) =>
-                                setLocalShiftConfig({
-                                    ...localShiftConfig,
-                                    workingDaysPerMonth: Number(e.target.value),
-                                })
-                            }
-                            hint="Used for calculating hourly rate"
-                        />
-                    </div>
-                    <Input
-                        label="Overtime Multiplier"
-                        type="number"
-                        step="0.1"
-                        value={localShiftConfig.overtimeMultiplier}
-                        onChange={(e) =>
-                            setLocalShiftConfig({
-                                ...localShiftConfig,
-                                overtimeMultiplier: Number(e.target.value),
-                            })
-                        }
-                        hint="Overtime pay rate (e.g., 1 = regular rate, 1.5 = time and a half)"
-                    />
-
-                    <div className="mt-4 p-4 bg-[--color-bg-tertiary] rounded-[--radius-lg]">
-                        <p className="text-sm text-[--color-text-muted] mb-2">Hourly Rate Formula:</p>
-                        <p className="text-sm font-mono text-[--color-text-primary]">
-                            Hourly Rate = Monthly Pay ÷ ({localShiftConfig.workingDaysPerMonth} days × {localShiftConfig.hoursPerDay} hours)
-                        </p>
-                        <p className="text-xs text-[--color-text-muted] mt-2">
-                            Example: ₹75,000/month = ₹{Math.round(75000 / (localShiftConfig.workingDaysPerMonth * localShiftConfig.hoursPerDay))}/hour
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Company Settings */}
-            <Card padding="md">
-                <CardHeader>
-                    <CardTitle>Company Settings</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <Input
-                        label="Company Name"
-                        value={localSettings.companyName}
-                        onChange={(e) =>
-                            setLocalSettings({ ...localSettings, companyName: e.target.value })
-                        }
-                        placeholder="Enter your company name"
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                        <Select
-                            label="Currency"
-                            options={[
-                                { value: 'INR', label: 'Indian Rupee (₹)' },
-                                { value: 'USD', label: 'US Dollar ($)' },
-                                { value: 'EUR', label: 'Euro (€)' },
-                                { value: 'GBP', label: 'British Pound (£)' },
-                            ]}
-                            value={localSettings.currency}
-                            onChange={(e) =>
-                                setLocalSettings({ ...localSettings, currency: e.target.value })
-                            }
-                        />
-                        <Input
-                            label="Currency Symbol"
-                            value={localSettings.currencySymbol}
-                            onChange={(e) =>
-                                setLocalSettings({ ...localSettings, currencySymbol: e.target.value })
-                            }
-                            placeholder="₹"
-                        />
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Data Management */}
-            <Card padding="md">
-                <CardHeader>
-                    <CardTitle>Data Management</CardTitle>
+                    <CardTitle>Data export</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <p className="text-sm text-[--color-text-secondary]">
-                        Backup your data or restore from a previous backup. Export includes all employees, attendance, and payroll records.
+                        Exports contain exactly the rows the API returned for your role. Payroll and attendance are
+                        written only through the API, so there is no import that could bypass the Phase 4 triggers.
                     </p>
-                    <div className="flex gap-3">
-                        <Button variant="secondary" onClick={handleExport} disabled={isExporting}>
-                            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                            Export Data
+                    <div className="flex gap-3 flex-wrap">
+                        <Button variant="secondary" onClick={handleExportEmployees}>
+                            <Download className="w-4 h-4" /> Employees
                         </Button>
-                        <Button
-                            variant="secondary"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isImporting}
-                        >
-                            {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                            Import Data
+                        <Button variant="secondary" onClick={handleExportAttendance}>
+                            <Download className="w-4 h-4" /> Attendance ({currentMonth})
                         </Button>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept=".json"
-                            onChange={handleImport}
-                            className="hidden"
-                        />
+                        <Button variant="secondary" onClick={handleExportPayroll}>
+                            <Download className="w-4 h-4" /> Payroll ({currentMonth})
+                        </Button>
                     </div>
-                    <div className="mt-4 p-4 bg-[--color-warning]/10 border border-[--color-warning]/30 rounded-[--radius-lg] flex items-start gap-3">
+                    <div className="p-4 bg-[--color-warning]/10 border border-[--color-warning]/30 flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-[--color-warning] flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-[--color-warning]">
-                            Importing data will add new records to your existing data. Make sure to backup first if needed.
+                            Salary revisions and payroll recalculation happen in the database under Phase 4 transaction
+                            rules; the UI intentionally offers no shortcut around them.
                         </p>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* About */}
             <Card padding="md">
                 <CardContent>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="font-medium text-[--color-text-primary]">PAYTRACK</h3>
-                            <p className="text-sm text-[--color-text-muted]">v1.3 • Made By codeRED</p>
-                        </div>
-                    </div>
+                    <h3 className="font-medium text-[--color-text-primary]">PayTrack</h3>
+                    <p className="text-sm text-[--color-text-muted]">
+                        DBMS capstone &bull; React + TypeScript client, SQLite + Node API
+                    </p>
                 </CardContent>
             </Card>
         </div>

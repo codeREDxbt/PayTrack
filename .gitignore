@@ -16,7 +16,14 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dev-dist
 *.local
+
+# Local database (rebuilt from database/*.sql on first API start)
+database/*.sqlite
+database/*.sqlite-shm
+database/*.sqlite-wal
+database/*.sqlite-journal
 
 # Editor directories and files
 .vscode/*
