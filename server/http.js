@@ -9,12 +9,22 @@ export const MAX_BODY_BYTES = 100 * 1024;
 // Vite dev (5173) and preview (4173) are served both as localhost and as
 // 127.0.0.1 depending on how the server was started, so both spellings are
 // allowed. Any other origin gets no CORS headers.
-export const CORS_ORIGINS = [
+const LOOPBACK_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:4173',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:4173'
 ];
+
+// A deployed client lives on another origin, so it is added at deploy time:
+//   CORS_ORIGINS=https://paytrackx.vercel.app
+// Comma-separated, trailing slash ignored.
+const DEPLOYED_ORIGINS = (process.env.CORS_ORIGINS ?? '')
+  .split(',')
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
+export const CORS_ORIGINS = [...new Set([...LOOPBACK_ORIGINS, ...DEPLOYED_ORIGINS])];
 
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',

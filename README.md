@@ -268,7 +268,21 @@ npm run preview   # serve dist/ locally
 ```
 
 The build is a static SPA: any host must rewrite unknown paths to `index.html` so client-side routes
-such as `/reports` survive a page refresh.
+such as `/reports` survive a page refresh. `vercel.json` does that for Vercel.
+
+### Deploying the client
+
+The client is static; the API is not. A deployed build calls the API URL baked in at build time, so
+hosting the client alone leaves sign-in failing with "Cannot reach the PayTrack API".
+
+1. Host `server/` somewhere that runs Node 22.5+ (`node:sqlite` is a built-in) and exposes it over
+   HTTPS — Render, Railway or Fly.io all work. The API creates and seeds `database/paytrack.sqlite`
+   on first start; on hosts with an ephemeral disk the demo data simply resets when the service
+   restarts, so attach a volume if the data must persist.
+2. Set `CORS_ORIGINS` on the API host to the client's origin, e.g.
+   `CORS_ORIGINS=https://paytrackx.vercel.app` (comma-separated for several, loopback is always allowed).
+3. Build the client with `VITE_API_URL=https://<api-host>/api`. The CSP in `index.html` is extended
+   with that origin automatically by `vite.config.ts`, so no manual CSP edit is needed.
 
 ---
 
