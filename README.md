@@ -267,7 +267,8 @@ npm run build     # tsc -b && vite build  →  dist/
 npm run preview   # serve dist/ locally
 ```
 
-`vercel.json` contains the SPA rewrite used when the static build is hosted on Vercel.
+The build is a static SPA: any host must rewrite unknown paths to `index.html` so client-side routes
+such as `/reports` survive a page refresh.
 
 ---
 
@@ -318,7 +319,7 @@ Run the full database suite through npm with `npm test` (same command as `node t
 ```
 PayTrack/
 ├── README.md
-├── .env.example               # API base URL (+ unused Firebase placeholders)
+├── .env.example               # VITE_API_URL for the client
 ├── package.json               # scripts: dev, build, test, cli
 ├── index.html                 # Vite entry + Content Security Policy
 ├── vite.config.ts
@@ -357,8 +358,6 @@ PayTrack/
 │   ├── report/PayTrack_Project_Report.md · .pdf   # source + submission PDF
 │   ├── build-conventions.md
 │   └── assets/screenshots/    # 01-login.png … 06-employee-dashboard.png
-│
-└── vercel.json                # SPA rewrite for static hosting
 ```
 
 ---
@@ -429,8 +428,7 @@ authorised in the same place the data is read.
 - CSV exports (directory, payroll, payslip) are generated client-side from data already fetched; there
   is no server-side PDF or export job.
 - Email delivery, password reset and multi-factor authentication are not implemented.
-- Firebase packages remain installed for the original client but the application now authenticates
-  against the PayTrack API; Firebase configuration in `.env.example` is unused.
+- Firebase packages remain installed from the original client but are unused by the current app.
 
 ---
 
@@ -446,7 +444,7 @@ authorised in the same place the data is read.
 | [`docs/phase-5/test-infrastructure.md`](docs/phase-5/test-infrastructure.md) | Phase 5 — opaque-box test architecture, harness, tiers and flags |
 | [`docs/build-conventions.md`](docs/build-conventions.md) | Phase 3–5 build contract: engine rules, API contract, file ownership |
 | [`docs/report/PayTrack_Project_Report.md`](docs/report/PayTrack_Project_Report.md) | Consolidated report, real-world use cases and scaling roadmap |
-| [`docs/report/PayTrack_Project_Report.pdf`](docs/report/PayTrack_Project_Report.pdf) | Submission-ready PDF of the report (regenerate with `node docs/report/generate_pdf.mjs`) |
+| [`docs/report/PayTrack_Project_Report.pdf`](docs/report/PayTrack_Project_Report.pdf) | Submission-ready PDF of the report |
 
 ---
 

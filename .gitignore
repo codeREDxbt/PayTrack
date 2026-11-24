@@ -38,6 +38,3 @@ database/*.sqlite-journal
 
 # Local tool config (contains a personal API key — never commit)
 mcp_config.json
-
-# Generated print artifact (rebuild with: node docs/report/generate_pdf.mjs)
-docs/report/PayTrack_Project_Report.html
