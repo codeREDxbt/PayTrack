@@ -1,16 +1,16 @@
 /**
  * ============================================================================
  * PayTrack Phase 4 - Security, Access Control & Transaction Testing
- * (test/phase4_security.test.js)
+ * (tests/phase4_security.test.js)
  * ============================================================================
- * Zero-dependency suite in the same style as test/run_e2e.js: its own
+ * Zero-dependency suite in the same style as tests/run_e2e.js: its own
  * test(id, type, description, fn) reporter, PASS/FAIL counts, exit code 1 on
  * failure, no npm packages beyond Node's built-ins.
  *
  * Usage:
- *   node test/phase4_security.test.js            # run all Phase 4 tests
- *   node test/phase4_security.test.js --verbose  # print every case as it runs
- *   node --test test/phase4_security.test.js     # not used: plain node runner
+ *   node tests/phase4_security.test.js            # run all Phase 4 tests
+ *   node tests/phase4_security.test.js --verbose  # print every case as it runs
+ *   node --test tests/phase4_security.test.js     # not used: plain node runner
  *
  * Every case starts from a copy of one template database built in os.tmpdir()
  * from the real database/*.sql files, in the documented order

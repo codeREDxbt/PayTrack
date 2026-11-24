@@ -3,8 +3,8 @@
 This file is the shared contract for parallel work in this repository. Follow it exactly so the pieces fit together.
 
 ## Project facts (do not redo)
-- Phase 1 done: `database/schema.sql` (3NF), `docs/DATABASE_MODELING.md`.
-- Phase 2 done: `database/procedures.sql` (views `vw_employee_attendance_monthly_summary`, `vw_payroll_procedural_computation`), `database/triggers.sql`, `database/seed.sql` (12 employees, Aug–Oct 2026, 1,104 attendance rows, 36 payroll rows), `docs/PROCEDURAL_IMPLEMENTATION.md`. Existing suite `node test/run_e2e.js` = 134/134 passing — **never break it**.
+- Phase 1 done: `database/schema.sql` (3NF), `docs/phase-1/schema-design.md`.
+- Phase 2 done: `database/procedures.sql` (views `vw_employee_attendance_monthly_summary`, `vw_payroll_procedural_computation`), `database/triggers.sql`, `database/seed.sql` (12 employees, Aug–Oct 2026, 1,104 attendance rows, 36 payroll rows), `docs/phase-2/procedural-implementation.md`. Existing suite `node tests/run_e2e.js` = 134/134 passing — **never break it**.
 - Engine: SQLite (Node.js v24 `node:sqlite`). No npm dependencies for DB/API code.
 - Student header used in every SQL file: Vinayak / 2501730150 / DBMS.
 - Working dir: `E:\Projects\Paytrack`. Platform Windows, shell bash (Git Bash). Node v24.
@@ -12,11 +12,11 @@ This file is the shared contract for parallel work in this repository. Follow it
 ## File ownership (do not edit files outside your list)
 | Area | Files |
 |---|---|
-| Phase 3 | `database/reports.sql`, `test/run_reports.js`, `test/phase3_reports.test.js`, `docs/QUERY_REPORTS.md` |
-| Phase 4 | `database/security.sql`, `test/phase4_security.test.js`, `docs/SECURITY_TESTING.md` |
-| API + docs | `server/**`, `test/phase5_api.test.js`, `test/run_api.js`, `docs/API_REFERENCE.md` |
+| Phase 3 | `database/reports.sql`, `tests/run_reports.js`, `tests/phase3_reports.test.js`, `docs/phase-3/query-reports.md` |
+| Phase 4 | `database/security.sql`, `tests/phase4_security.test.js`, `docs/phase-4/security-testing.md` |
+| API + docs | `server/**`, `tests/phase5_api.test.js`, `tests/run_api.js`, `docs/phase-5/api-reference.md` |
 | Frontend | `src/**`, `index.html` if truly needed |
-| Docs | `README.md`, `docs/FINAL_REPORT.md` |
+| Docs | `README.md`, `docs/report/PayTrack_Project_Report.md` |
 
 ## Standard SQL file header (copy it)
 ```sql
@@ -73,7 +73,7 @@ This file is the shared contract for parallel work in this repository. Follow it
 Login users are seeded from `Employee` rows: the API, on first migration, adds an `AuthUser` table and inserts credentials for the 12 seeded employees using the email in `Employee.email`. Password policy for seed: ADMIN/HR → `Admin@123` / `Hr@12345`, employees → `Employee@123`. Store `password_hash` = SHA-256 of `salt + password` with a per-user random salt (`crypto.randomBytes`). Never store plaintext.
 
 ## Tests
-- Use `node:test`-free style already in the repo? No — for new suites use plain `node test/run_x.js` runners in the same style as `test/run_e2e.js` (own tiny `test(id, desc, fn)` helper, pass/fail counts, exit code 1 on failure) so output stays consistent.
+- Use `node:test`-free style already in the repo? No — for new suites use plain `node tests/run_x.js` runners in the same style as `tests/run_e2e.js` (own tiny `test(id, desc, fn)` helper, pass/fail counts, exit code 1 on failure) so output stays consistent.
 - Build fresh databases in `os.tmpdir()` per suite from the SQL files; never mutate `database/paytrack.sqlite`.
 - Phase 3 must include a real `EXPLAIN QUERY PLAN` comparison: run the same report query on a schema **without** the new report indexes vs **with** them, and assert the plan changes from `SCAN` to `SEARCH ... USING INDEX`. Capture both plans as text for the doc.
 - Phase 4 must cover valid, invalid, and boundary cases: negative/zero salary, duplicate attendance, unauthorized access (EMPLOYEE calling staff endpoints, cross-employee reads), invalid month, closed payroll period, and a forced mid-transaction failure that rolls back **every** code inserted in that batch.

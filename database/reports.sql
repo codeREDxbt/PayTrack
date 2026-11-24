@@ -378,7 +378,7 @@ FULL OUTER JOIN pay
 -- Why a range instead of a month-key equality:
 --   The obvious month predicate, substr(attendance_date, 1, 7) = ?, applies a
 --   function to the indexed column, so no index can be used and SQLite
---   reports SCAN Attendance (captured in docs/QUERY_REPORTS.md). Because every
+--   reports SCAN Attendance (captured in docs/phase-3/query-reports.md). Because every
 --   attendance_date is a fixed-width 'YYYY-MM-DD' string, the month
 --   [month_key, next month) is exactly the half-open range
 --     attendance_date >= month_key || '-01'
@@ -426,7 +426,7 @@ WHERE a.attendance_date >= current_month() || '-01'
 -- ============================================================================
 -- Each index below is justified by a specific report query, and the
 -- before/after EXPLAIN QUERY PLAN for that query is captured in
--- docs/QUERY_REPORTS.md (measured with node test/run_reports.js).
+-- docs/phase-3/query-reports.md (measured with node tests/run_reports.js).
 --
 -- idx_attendance_month_late  (attendance_date, is_late, employee_id)
 --   Query:  the month window feeding the monthly attendance summary and the
@@ -442,7 +442,7 @@ WHERE a.attendance_date >= current_month() || '-01'
 --           this index it switches to idx_attendance_month_late. This index
 --           is therefore a change of access path (plus employee_id as an
 --           index-carried column), not a change from scan to search - stated
---           as such in docs/QUERY_REPORTS.md.
+--           as such in docs/phase-3/query-reports.md.
 --   Note:   This deliberately does NOT dominate idx_attendance_emp_date
 --           (employee_id, attendance_date): the leading column differs, so the
 --           per-employee equality-join path keeps using the Phase-1 index.
@@ -465,7 +465,7 @@ WHERE a.attendance_date >= current_month() || '-01'
 --   - is_late = 1 alone matches 27 of 1,104 rows and stays SCAN Attendance
 --     with these indexes in place; the late-marks report is therefore always
 --     month-bounded, never a bare is_late sweep.
---   Both facts are measured and stated in docs/QUERY_REPORTS.md rather than
+--   Both facts are measured and stated in docs/phase-3/query-reports.md rather than
 --   papered over.
 CREATE INDEX IF NOT EXISTS idx_attendance_month_late
     ON Attendance (attendance_date, is_late, employee_id);
@@ -487,7 +487,7 @@ CREATE INDEX IF NOT EXISTS idx_payroll_period_status
 --     SELECT * FROM vw_rpt_monthly_attendance_summary
 --      WHERE month_key = ?
 --      ORDER BY department, employee_name;
---     (this view's plan is captured in docs/QUERY_REPORTS.md, RPT-073)
+--     (this view's plan is captured in docs/phase-3/query-reports.md, RPT-073)
 --
 -- Q2  GET /attendance/late?month=YYYY-MM       (staff only)
 --     SELECT * FROM vw_rpt_late_marks
@@ -516,7 +516,7 @@ CREATE INDEX IF NOT EXISTS idx_payroll_period_status
 --
 -- Period-scoped checks used by POST /payroll/generate and the payroll list,
 -- and the month window the attendance/late/rollup reports read. These are the
--- two statements measured with EXPLAIN QUERY PLAN in docs/QUERY_REPORTS.md:
+-- two statements measured with EXPLAIN QUERY PLAN in docs/phase-3/query-reports.md:
 --     SELECT * FROM Payroll
 --      WHERE pay_period_year = ? AND pay_period_month = ?
 --        AND status = 'DRAFT';                      -- idx_payroll_period_status

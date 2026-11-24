@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * Tier 4: Real-World Workload Scenarios Test Suite (test/tier4_realworld.test.js)
+ * Tier 4: Real-World Workload Scenarios Test Suite (tests/tier4_realworld.test.js)
  * ============================================================================
  * Total: 6 Multi-Step Enterprise Lifecycle Workflows.
  * Requires: Node.js v24 native test runner / assert.

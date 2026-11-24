@@ -1,8 +1,8 @@
 /**
  * ============================================================================
- * PayTrack Phase 3 Report Suite (test/phase3_reports.test.js)
+ * PayTrack Phase 3 Report Suite (tests/phase3_reports.test.js)
  * ============================================================================
- * Runner: node test/run_reports.js
+ * Runner: node tests/run_reports.js
  *
  * Verification strategy
  *   - A fresh database is built in os.tmpdir() from schema -> procedures ->

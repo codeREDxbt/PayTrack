@@ -7,8 +7,8 @@
 | Course | Database Management Systems (Capstone Phase 4) |
 | Engine | SQLite 3.51.3 via Node.js v24 `node:sqlite` |
 | Schema file | `database/security.sql` (loads after `schema` → `procedures` → `triggers` → `seed`) |
-| Suite | `node test/phase4_security.test.js` — 51 / 51 passing |
-| Regression | `node test/run_e2e.js` — 134 / 134, `node test/run_reports.js` — 46 / 46 |
+| Suite | `node tests/phase4_security.test.js` — 51 / 51 passing |
+| Regression | `node tests/run_e2e.js` — 134 / 134, `node tests/run_reports.js` — 46 / 46 |
 
 Phase 4 adds the identity, authorisation and integrity layer underneath the Phase 5 API. Nothing in
 `database/schema.sql`, `procedures.sql`, `triggers.sql` or `seed.sql` was weakened to make it work.
@@ -89,7 +89,7 @@ automatic late-mark) are untouched and still tested here.
 
 ## 2. Suite design
 
-`test/phase4_security.test.js` follows the repository's plain-runner style (no Jest/Mocha). It builds
+`tests/phase4_security.test.js` follows the repository's plain-runner style (no Jest/Mocha). It builds
 one template database in `os.tmpdir()` from the real SQL files, then copies it per case so no case can
 observe another's writes. `database/paytrack.sqlite` is never touched.
 
@@ -142,10 +142,10 @@ pre-existing `DRAFT` row, then throws at the second employee. After `ROLLBACK`:
 ## 3. Reproducing
 
 ```powershell
-node test/phase4_security.test.js
-node test/phase4_security.test.js --verbose
-node test/run_e2e.js
-node test/run_reports.js
+node tests/phase4_security.test.js
+node tests/phase4_security.test.js --verbose
+node tests/run_e2e.js
+node tests/run_reports.js
 ```
 
 The runner exits `0` only when all 51 cases pass, and prints `VALID`/`INVALID`/`BOUND` subtotals.
@@ -181,7 +181,7 @@ Verified by execution:
 
 Not verified here:
 
-- No HTTP layer is exercised in this suite; Phase 5 (`test/run_api.js`) covers the routes that map
+- No HTTP layer is exercised in this suite; Phase 5 (`tests/run_api.js`) covers the routes that map
   these database rules onto status codes.
 - `SessionContext` is written directly by the tests. That it is written correctly per request, and
   cannot be reused across users, is a server concern tested in Phase 5.

@@ -2,7 +2,7 @@
 // PayTrack API Client
 // ================================
 // One typed wrapper around the Phase 5 REST API. Every response is the
-// `{ data }` envelope documented in docs/API_REFERENCE.md; errors are turned
+// `{ data }` envelope documented in docs/phase-5/api-reference.md; errors are turned
 // into ApiError so pages can show the server's message instead of a stack.
 
 import type {

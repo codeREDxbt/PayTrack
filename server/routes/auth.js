@@ -81,7 +81,7 @@ export function registerAuthRoutes(add) {
 
   // Session exchange for browsers that signed in with Firebase. The demo build
   // trusts the email in the body; production MUST verify the Firebase ID token
-  // server-side before this lookup (see docs/API_REFERENCE.md).
+  // server-side before this lookup (see docs/phase-5/api-reference.md).
   add('public', 'POST', '/api/auth/session', async (ctx) => {
     const body = requireObject(ctx.body);
     rejectUnknownFields(body, ['email', 'idToken'], 'session exchange');

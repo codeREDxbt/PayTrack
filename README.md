@@ -15,20 +15,33 @@ browser never calculates pay.
 
 ---
 
+## Academic phase structure
+
+| Phase | Title | Deliverables | Evidence | Status |
+|---|---|---|---|---|
+| **1** | Data modelling & schema design | 3NF schema, keys, CHECK constraints, Phase 1 indexes | [`database/schema.sql`](database/schema.sql) · [`docs/phase-1/schema-design.md`](docs/phase-1/schema-design.md) | Complete |
+| **2** | Procedural implementation | Salary/tax views, attendance + payroll triggers, 12-employee seed | [`database/procedures.sql`](database/procedures.sql) · [`database/triggers.sql`](database/triggers.sql) · [`docs/phase-2/procedural-implementation.md`](docs/phase-2/procedural-implementation.md) | Complete |
+| **3** | Query & report development | Five report views, two report indexes, measured query plans | [`database/reports.sql`](database/reports.sql) · [`docs/phase-3/query-reports.md`](docs/phase-3/query-reports.md) | Complete |
+| **4** | Security, RBAC & testing | Hashed credentials, RBAC tables, row-level secure views, 51 security tests | [`database/security.sql`](database/security.sql) · [`docs/phase-4/security-testing.md`](docs/phase-4/security-testing.md) | Complete |
+| **5** | Full-stack integration & UI | REST API, React client, CLI, 325 passing assertions | [`server/`](server) · [`src/`](src) · [`docs/phase-5/api-reference.md`](docs/phase-5/api-reference.md) | Complete |
+
+---
+
 ## Table of contents
 
-1. [Screenshots](#screenshots)
-2. [Features](#features)
-3. [Architecture](#architecture)
-4. [Database design](#database-design)
-5. [Role matrix](#role-matrix)
-6. [Getting started](#getting-started)
-7. [Demo accounts](#demo-accounts)
-8. [Testing](#testing)
-9. [Project structure](#project-structure)
-10. [Real-world scaling](#real-world-scaling)
-11. [Limitations](#limitations)
-12. [Documentation](#documentation)
+1. [Academic phase structure](#academic-phase-structure)
+2. [Screenshots](#screenshots)
+3. [Features](#features)
+4. [Architecture](#architecture)
+5. [Database design](#database-design)
+6. [Role matrix](#role-matrix)
+7. [Getting started](#getting-started)
+8. [Demo accounts](#demo-accounts)
+9. [Testing](#testing)
+10. [Project structure](#project-structure)
+11. [Real-world scaling](#real-world-scaling)
+12. [Limitations](#limitations)
+13. [Documentation](#documentation)
 
 ---
 
@@ -36,32 +49,32 @@ browser never calculates pay.
 
 **Sign-in** — one entry point for all three roles; demo buttons fill credentials for evaluation.
 
-![PayTrack sign-in screen](docs/screenshots/login.png)
+![PayTrack sign-in screen](docs/assets/screenshots/01-login.png)
 
 **Staff dashboard** — organisation-wide figures for the selected month: headcount, present days, late
 marks, net paid, absence/leave/half days, overtime and a six-month payout trend.
 
-![Admin dashboard](docs/screenshots/admin-dashboard.png)
+![Admin dashboard](docs/assets/screenshots/02-admin-dashboard.png)
 
 **People** — the employee directory with search, department and status filters, plus add/edit/delete
 for staff.
 
-![Employee directory](docs/screenshots/people.png)
+![Employee directory](docs/assets/screenshots/03-people.png)
 
 **Payroll** — one row per employee for the period, computed from `vw_payroll_procedural_computation`:
 days paid, overtime, gross, TDS, unpaid leave, net and status, with payslip and export actions.
 
-![Payroll run for October 2026](docs/screenshots/payroll.png)
+![Payroll run for October 2026](docs/assets/screenshots/04-payroll.png)
 
 **Reports** — department rollup, per-employee attendance summary and late marks, served directly by the
 Phase 3 report views.
 
-![Monthly reports](docs/screenshots/reports.png)
+![Monthly reports](docs/assets/screenshots/05-reports.png)
 
 **Employee self-service** — the same application with the staff console removed: only personal figures,
 own attendance, own payslips and profile.
 
-![Employee dashboard](docs/screenshots/employee-dashboard.png)
+![Employee dashboard](docs/assets/screenshots/06-employee-dashboard.png)
 
 ---
 
@@ -101,7 +114,7 @@ own attendance, own payslips and profile.
 - Late-marks register for the month with check-in time and minutes late.
 - Salary-slip report per employee, built from the same procedure the payroll run uses.
 - Report queries are backed by purpose-built indexes and the plans are documented with
-  `EXPLAIN QUERY PLAN` before/after in [`docs/QUERY_REPORTS.md`](docs/QUERY_REPORTS.md).
+  `EXPLAIN QUERY PLAN` before/after in [`docs/phase-3/query-reports.md`](docs/phase-3/query-reports.md).
 
 ### Employee self-service (EMPLOYEE)
 - Personal dashboard for a chosen month: own present/late/leave/absent days, overtime, net paid and
@@ -180,8 +193,8 @@ triggers and CHECK constraints, so a direct SQL client cannot bypass them either
 | `idx_attendance_month_late`, `idx_payroll_period_status` | month-window and period-status report indexes |
 | Triggers | overlap rejection, future dates, overtime bounds, late-mark derivation, payroll status transitions |
 
-See [`docs/DATABASE_MODELING.md`](docs/DATABASE_MODELING.md) for the data dictionary and 3NF argument,
-and [`docs/PROCEDURAL_IMPLEMENTATION.md`](docs/PROCEDURAL_IMPLEMENTATION.md) for the procedures and
+See [`docs/phase-1/schema-design.md`](docs/phase-1/schema-design.md) for the data dictionary and 3NF argument,
+and [`docs/phase-2/procedural-implementation.md`](docs/phase-2/procedural-implementation.md) for the procedures and
 triggers.
 
 ---
@@ -279,47 +292,73 @@ the same SQL files the server uses.
 
 | Suite | Command | Tests | Covers |
 |---|---|---:|---|
-| Schema + procedures + triggers | `node test/run_e2e.js` | 134 | constraints, triggers, salary math, transactions |
-| Query & report layer | `node test/run_reports.js` | 46 | report views, index plans, result parity |
-| Security & RBAC | `node test/phase4_security.test.js` | 51 | roles, row-level views, boundary and abuse cases |
-| REST API | `node test/run_api.js` | 94 | auth, validation, status codes, CORS, rate limits |
+| Schema + procedures + triggers | `node tests/run_e2e.js` | 134 | constraints, triggers, salary math, transactions |
+| Query & report layer | `node tests/run_reports.js` | 46 | report views, index plans, result parity |
+| Security & RBAC | `node tests/phase4_security.test.js` | 51 | roles, row-level views, boundary and abuse cases |
+| REST API | `node tests/run_api.js` | 94 | auth, validation, status codes, CORS, rate limits |
 
 ```bash
-node test/run_e2e.js
-node test/run_reports.js
-node test/phase4_security.test.js
-node test/run_api.js
+node tests/run_e2e.js
+node tests/run_reports.js
+node tests/phase4_security.test.js
+node tests/run_api.js
 ```
 
 All four suites pass (134 + 46 + 51 + 94 = **325 assertions**). Results and the reasoning behind the
-security cases are in [`docs/SECURITY_TESTING.md`](docs/SECURITY_TESTING.md).
+security cases are in [`docs/phase-4/security-testing.md`](docs/phase-4/security-testing.md); the
+opaque-box test architecture (harness, tiers, isolation, flags) is described in
+[`docs/phase-5/test-infrastructure.md`](docs/phase-5/test-infrastructure.md).
+
+Run the full database suite through npm with `npm test` (same command as `node tests/run_e2e.js`).
 
 ---
 
 ## Project structure
 
 ```
-Paytrack/
-├── database/                 # SQL source of truth
-│   ├── schema.sql            # 3NF tables, constraints, Phase 1 indexes
-│   ├── procedures.sql        # salary / tax computation procedures
-│   ├── triggers.sql          # attendance + payroll integrity guards
-│   ├── seed.sql              # 12 employees, 3 months of attendance, payroll
-│   ├── security.sql          # auth tables, RBAC, row-level secure views
-│   └── reports.sql           # report views + report indexes
-├── server/                   # Node HTTP API over node:sqlite
-│   ├── index.js              # bootstrap + listener
-│   ├── http.js               # routing, CORS, headers, error mapping
-│   ├── db.js                 # database lifecycle + SQL functions
-│   └── routes/               # auth, employees, attendance, leave, payroll, reports
-├── src/                      # React client
-│   ├── components/           # layout, charts, UI primitives
-│   ├── contexts/             # AuthContext (session) + AppContext (data)
-│   ├── lib/                  # typed API client, types, formatters
-│   └── pages/                # Login, Overview, People, TimeLeave, Payroll, Reports, Profile, Settings
-├── docs/                     # phase documentation and screenshots
-├── test/                     # phase test suites
-└── index.html                # Vite entry + CSP
+PayTrack/
+├── README.md
+├── .env.example               # API base URL (+ unused Firebase placeholders)
+├── package.json               # scripts: dev, build, test, cli
+├── index.html                 # Vite entry + Content Security Policy
+├── vite.config.ts
+│
+├── database/                  # SQL source of truth
+│   ├── schema.sql             # 3NF tables, constraints, Phase 1 indexes
+│   ├── procedures.sql         # salary / tax computation views
+│   ├── triggers.sql           # attendance + payroll integrity guards
+│   ├── seed.sql               # 12 employees, 3 months of attendance, payroll
+│   ├── security.sql           # auth tables, RBAC, row-level secure views
+│   └── reports.sql            # report views + report indexes
+│
+├── server/                    # Node HTTP API over node:sqlite (no framework)
+│   ├── index.js               # bootstrap + listener
+│   ├── app.js / http.js       # routing, CORS, headers, error mapping
+│   ├── db.js / sql.js         # database lifecycle + prepared statements
+│   ├── auth.js / validate.js  # sessions, RBAC checks, field validation
+│   └── routes/                # auth, employees, attendance, leave, payroll, reports
+│
+├── src/                       # React client
+│   ├── components/            # layout, charts, UI primitives
+│   ├── contexts/              # AuthContext (session) + AppContext (data)
+│   ├── lib/                   # typed API client, types, formatters
+│   └── pages/                 # Login, Overview, People, TimeLeave, Payroll, Reports, Profile, Settings
+│
+├── cli/                       # paytrack-cli.js — terminal client over the same API
+├── tests/                     # phase test suites (no test framework, no dependencies)
+│
+├── docs/                      # documentation, organised by phase
+│   ├── phase-1/schema-design.md
+│   ├── phase-2/procedural-implementation.md
+│   ├── phase-3/query-reports.md
+│   ├── phase-4/security-testing.md
+│   ├── phase-5/api-reference.md
+│   ├── phase-5/test-infrastructure.md
+│   ├── report/PayTrack_Project_Report.md
+│   ├── build-conventions.md
+│   └── assets/screenshots/    # 01-login.png … 06-employee-dashboard.png
+│
+└── vercel.json                # SPA rewrite for static hosting
 ```
 
 ---
@@ -399,13 +438,14 @@ authorised in the same place the data is read.
 
 | Document | Contents |
 |---|---|
-| [`docs/DATABASE_MODELING.md`](docs/DATABASE_MODELING.md) | Phase 1 — data dictionary, relationships, 3NF justification |
-| [`docs/PROCEDURAL_IMPLEMENTATION.md`](docs/PROCEDURAL_IMPLEMENTATION.md) | Phase 2 — salary procedures, tax tiers, triggers |
-| [`docs/QUERY_REPORTS.md`](docs/QUERY_REPORTS.md) | Phase 3 — report SQL, index strategy, measured query plans |
-| [`docs/SECURITY_TESTING.md`](docs/SECURITY_TESTING.md) | Phase 4 — RBAC, row-level views, transaction integrity, test evidence |
-| [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) | Phase 5 — every endpoint, payload and status code |
-| [`docs/BUILD_CONVENTIONS.md`](docs/BUILD_CONVENTIONS.md) | Phase 3–5 build contract: engine rules, API contract, file ownership |
-| [`docs/FINAL_REPORT.md`](docs/FINAL_REPORT.md) | Consolidated report, real-world use cases and scaling roadmap |
+| [`docs/phase-1/schema-design.md`](docs/phase-1/schema-design.md) | Phase 1 — data dictionary, relationships, 3NF justification |
+| [`docs/phase-2/procedural-implementation.md`](docs/phase-2/procedural-implementation.md) | Phase 2 — salary procedures, tax tiers, triggers |
+| [`docs/phase-3/query-reports.md`](docs/phase-3/query-reports.md) | Phase 3 — report SQL, index strategy, measured query plans |
+| [`docs/phase-4/security-testing.md`](docs/phase-4/security-testing.md) | Phase 4 — RBAC, row-level views, transaction integrity, test evidence |
+| [`docs/phase-5/api-reference.md`](docs/phase-5/api-reference.md) | Phase 5 — every endpoint, payload and status code |
+| [`docs/phase-5/test-infrastructure.md`](docs/phase-5/test-infrastructure.md) | Phase 5 — opaque-box test architecture, harness, tiers and flags |
+| [`docs/build-conventions.md`](docs/build-conventions.md) | Phase 3–5 build contract: engine rules, API contract, file ownership |
+| [`docs/report/PayTrack_Project_Report.md`](docs/report/PayTrack_Project_Report.md) | Consolidated report, real-world use cases and scaling roadmap |
 
 ---
 

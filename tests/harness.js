@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * PayTrack End-to-End Test Suite Harness (test/harness.js)
+ * PayTrack End-to-End Test Suite Harness (tests/harness.js)
  * ============================================================================
  * Zero-dependency testing harness for PayTrack enterprise payroll & attendance.
  * Built strictly on Node.js v24 native built-in modules:

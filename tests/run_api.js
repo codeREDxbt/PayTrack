@@ -1,13 +1,13 @@
 /**
  * ============================================================================
- * PayTrack Phase 5 REST API Test Runner (test/run_api.js)
+ * PayTrack Phase 5 REST API Test Runner (tests/run_api.js)
  * ============================================================================
- * Same output style as test/run_e2e.js.
+ * Same output style as tests/run_e2e.js.
  *
  * Usage:
- *   node test/run_api.js              # run the API suite
- *   node test/run_api.js --verbose    # print every passing test too
- *   node test/run_api.js --json       # machine-readable report
+ *   node tests/run_api.js              # run the API suite
+ *   node tests/run_api.js --verbose    # print every passing test too
+ *   node tests/run_api.js --json       # machine-readable report
  *
  * Every suite starts its own server on an ephemeral port against a fresh
  * in-memory database; nothing here touches database/paytrack.sqlite.

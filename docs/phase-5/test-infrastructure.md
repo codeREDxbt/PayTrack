@@ -1,4 +1,4 @@
-# TEST_INFRA.md — PayTrack End-to-End Testing Infrastructure
+# PayTrack — End-to-End Test Infrastructure
 
 ## 1. Overview & Testing Philosophy
 
@@ -16,7 +16,7 @@ PayTrack is verified using a rigorous **Opaque-Box (Black/Gray-Box) Testing Arch
 
 ```
 +-----------------------------------------------------------------------------------+
-|                           TEST RUNNER (test/run_e2e.js)                           |
+|                           TEST RUNNER (tests/run_e2e.js)                           |
 |   - CLI Flag Parser (--tier=1,2,3,4,all, --verbose, --json)                       |
 |   - Tier Dispatcher & Lifecycle Orchestrator                                      |
 |   - Formatted Terminal Reporter & Exit Code Handler (0 / 1)                       |
@@ -24,7 +24,7 @@ PayTrack is verified using a rigorous **Opaque-Box (Black/Gray-Box) Testing Arch
                                           |
                                           v
 +-----------------------------------------------------------------------------------+
-|                           TEST HARNESS (test/harness.js)                          |
+|                           TEST HARNESS (tests/harness.js)                          |
 |   +-----------------------+ +-----------------------+ +-----------------------+   |
 |   |   Database Harness    | |   API Server Harness  | |      CLI Harness      |   |
 |   | - Ephemeral SQLite DB | | - Ephemeral Port (0)  | | - Child Process Spawn |   |
@@ -61,20 +61,20 @@ PayTrack is verified using a rigorous **Opaque-Box (Black/Gray-Box) Testing Arch
 
 ## 3. Test File Layout
 
-All test infrastructure files reside under `test/`:
+All test infrastructure files reside under `tests/`:
 
 | File | Purpose | Key Responsibilities |
 |---|---|---|
-| `test/run_e2e.js` | Master Test Runner | CLI argument parsing, tier dispatching, execution timing, terminal reporting, process exit codes. |
-| `test/harness.js` | Test Harness & Utilities | Database lifecycle, server startup/shutdown, HTTP requests, CLI execution, custom assertions. |
-| `test/tier1_features.test.js` | Tier 1: Feature Coverage | >=5 happy-path test cases per feature across all core features (50+ tests). |
-| `test/tier2_boundaries.test.js` | Tier 2: Boundary & Corner Cases | >=5 edge/negative test cases per feature (constraints, triggers, RBAC security) (50+ tests). |
-| `test/tier3_pairwise.test.js` | Tier 3: Cross-Feature Interactions | Pairwise combinations, state transitions, transaction rollbacks, index optimizations (16+ tests). |
-| `test/tier4_realworld.test.js` | Tier 4: Real-World Scenarios | End-to-end multi-employee quarterly payroll cycle, leave dispute resolution, promotion, late mark penalties (6+ scenarios). |
+| `tests/run_e2e.js` | Master Test Runner | CLI argument parsing, tier dispatching, execution timing, terminal reporting, process exit codes. |
+| `tests/harness.js` | Test Harness & Utilities | Database lifecycle, server startup/shutdown, HTTP requests, CLI execution, custom assertions. |
+| `tests/tier1_features.test.js` | Tier 1: Feature Coverage | >=5 happy-path test cases per feature across all core features (50+ tests). |
+| `tests/tier2_boundaries.test.js` | Tier 2: Boundary & Corner Cases | >=5 edge/negative test cases per feature (constraints, triggers, RBAC security) (50+ tests). |
+| `tests/tier3_pairwise.test.js` | Tier 3: Cross-Feature Interactions | Pairwise combinations, state transitions, transaction rollbacks, index optimizations (16+ tests). |
+| `tests/tier4_realworld.test.js` | Tier 4: Real-World Scenarios | End-to-end multi-employee quarterly payroll cycle, leave dispute resolution, promotion, late mark penalties (6+ scenarios). |
 
 ---
 
-## 4. Test Harness API Specification (`test/harness.js`)
+## 4. Test Harness API Specification (`tests/harness.js`)
 
 ### 4.1 Database Utilities
 - **`createTestDb(options)`**:
@@ -117,31 +117,31 @@ All test infrastructure files reside under `test/`:
 
 ---
 
-## 5. Master Runner Specification (`test/run_e2e.js`)
+## 5. Master Runner Specification (`tests/run_e2e.js`)
 
 ### 5.1 Command Line Interface
 ```bash
 # Run entire test suite across all 4 tiers
-node test/run_e2e.js
+node tests/run_e2e.js
 
 # Run individual tiers
-node test/run_e2e.js --tier=1
-node test/run_e2e.js --tier=2
-node test/run_e2e.js --tier=3
-node test/run_e2e.js --tier=4
+node tests/run_e2e.js --tier=1
+node tests/run_e2e.js --tier=2
+node tests/run_e2e.js --tier=3
+node tests/run_e2e.js --tier=4
 
 # Run with verbose assertion outputs
-node test/run_e2e.js --verbose
+node tests/run_e2e.js --verbose
 
 # Run with JSON machine-readable output
-node test/run_e2e.js --json
+node tests/run_e2e.js --json
 ```
 
 ---
 
 ## 6. 4-Tier Test Specifications
 
-### Tier 1: Core Feature Coverage (`test/tier1_features.test.js`)
+### Tier 1: Core Feature Coverage (`tests/tier1_features.test.js`)
 - Minimum >= 5 test cases per core feature across 10 features (56 tests total):
   1. Feature 1: 5-Entity Relational Data Model (6 tests)
   2. Feature 2: Procedural Computations (Salary & Deductions) (6 tests)
@@ -154,7 +154,7 @@ node test/run_e2e.js --json
   9. Feature 9: Role-Based Access Control (RBAC) (6 tests)
   10. Feature 10: ACID Transactions (6 tests)
 
-### Tier 2: Boundary & Corner Cases (`test/tier2_boundaries.test.js`)
+### Tier 2: Boundary & Corner Cases (`tests/tier2_boundaries.test.js`)
 - Minimum >= 5 test cases per core feature across 10 features (56 tests total):
   1. Data Model Constraints (6 tests)
   2. Attendance Boundaries (6 tests)
@@ -167,7 +167,7 @@ node test/run_e2e.js --json
   9. Report Boundary Conditions (5 tests)
   10. Data Integrity Edge Constraints (5 tests)
 
-### Tier 3: Cross-Feature Interactions (`test/tier3_pairwise.test.js`)
+### Tier 3: Cross-Feature Interactions (`tests/tier3_pairwise.test.js`)
 - 16 Pairwise combination test cases:
   1. T3-P01: Leave Approval -> Attendance Generation
   2. T3-P02: Attendance Late-Marks -> Late Report -> Penalty Calculation
@@ -186,7 +186,7 @@ node test/run_e2e.js --json
   15. T3-P15: Holiday Calendar vs Attendance Reconciliation
   16. T3-P16: Multiple Concurrent Leave Requests -> Trigger Race Condition
 
-### Tier 4: Real-World Workload Scenarios (`test/tier4_realworld.test.js`)
+### Tier 4: Real-World Workload Scenarios (`tests/tier4_realworld.test.js`)
 - 6 Comprehensive enterprise workflows:
   1. T4-R01: Full Quarterly Enterprise Payroll Cycle (12 employees, 3 months, 36 payslips)
   2. T4-R02: Mid-Quarter Promotion & Salary Restructuring
@@ -213,7 +213,7 @@ node test/run_e2e.js --json
 
 1. **Running the Suite**:
    ```bash
-   node test/run_e2e.js
+   node tests/run_e2e.js
    ```
 2. **Quality Gate Verification Criteria**:
    - Exit code must be `0`.

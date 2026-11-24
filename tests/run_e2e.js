@@ -1,17 +1,17 @@
 /**
  * ============================================================================
- * PayTrack End-to-End Master Test Runner (test/run_e2e.js)
+ * PayTrack End-to-End Master Test Runner (tests/run_e2e.js)
  * ============================================================================
  * Pure zero-dependency automated test runner for Node.js v24.
  *
  * Usage:
- *   node test/run_e2e.js                 # Run all 4 tiers (134 tests)
- *   node test/run_e2e.js --tier=1        # Run Tier 1: Feature Coverage (56 tests)
- *   node test/run_e2e.js --tier=2        # Run Tier 2: Boundary & Corner Cases (56 tests)
- *   node test/run_e2e.js --tier=3        # Run Tier 3: Pairwise Combinations (16 tests)
- *   node test/run_e2e.js --tier=4        # Run Tier 4: Real-World Workloads (6 scenarios)
- *   node test/run_e2e.js --verbose       # Show every single test case assertion
- *   node test/run_e2e.js --json          # Output JSON machine-readable report
+ *   node tests/run_e2e.js                 # Run all 4 tiers (134 tests)
+ *   node tests/run_e2e.js --tier=1        # Run Tier 1: Feature Coverage (56 tests)
+ *   node tests/run_e2e.js --tier=2        # Run Tier 2: Boundary & Corner Cases (56 tests)
+ *   node tests/run_e2e.js --tier=3        # Run Tier 3: Pairwise Combinations (16 tests)
+ *   node tests/run_e2e.js --tier=4        # Run Tier 4: Real-World Workloads (6 scenarios)
+ *   node tests/run_e2e.js --verbose       # Show every single test case assertion
+ *   node tests/run_e2e.js --json          # Output JSON machine-readable report
  * ============================================================================
  */
 

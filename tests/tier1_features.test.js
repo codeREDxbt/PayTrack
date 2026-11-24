@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * Tier 1: Core Feature Coverage Test Suite (test/tier1_features.test.js)
+ * Tier 1: Core Feature Coverage Test Suite (tests/tier1_features.test.js)
  * ============================================================================
  * Total: 56 Happy-Path Test Cases across 10 Core Functional Features.
  * Requires: Node.js v24 native test runner / assert.

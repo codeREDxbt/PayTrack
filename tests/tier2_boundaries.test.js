@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * Tier 2: Boundary & Corner Cases Test Suite (test/tier2_boundaries.test.js)
+ * Tier 2: Boundary & Corner Cases Test Suite (tests/tier2_boundaries.test.js)
  * ============================================================================
  * Total: 56 Edge, Boundary, and Constraint Error Test Cases.
  * Requires: Node.js v24 native test runner / assert.

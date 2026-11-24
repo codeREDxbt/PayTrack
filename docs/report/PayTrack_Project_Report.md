@@ -100,7 +100,7 @@ Two modelling decisions carry most of the weight:
   date; it does not touch past `Payroll` rows. The procedure always reads the structure that was in
   force for the period.
 
-The full data dictionary, keys and the 3NF argument are in `docs/DATABASE_MODELING.md`.
+The full data dictionary, keys and the 3NF argument are in `docs/phase-1/schema-design.md`.
 
 ---
 
@@ -207,7 +207,7 @@ colleague's payslip receives `403` and cannot distinguish "not yours" from "does
 
 ### 7.4 Verified security behaviour
 
-`node test/phase4_security.test.js` (51 tests) covers:
+`node tests/phase4_security.test.js` (51 tests) covers:
 
 - valid, invalid and boundary credentials, including deactivated accounts and expired sessions;
 - every role attempting every permission, including the HR-without-delete boundary;
@@ -263,10 +263,10 @@ one-off sizes.
 
 | Suite | Command | Result |
 |---|---|---|
-| Schema, procedures, triggers, end-to-end | `node test/run_e2e.js` | 134 / 134 |
-| Reporting and query plans | `node test/run_reports.js` | 46 / 46 |
-| Security and RBAC | `node test/phase4_security.test.js` | 51 / 51 |
-| REST API | `node test/run_api.js` | 94 / 94 |
+| Schema, procedures, triggers, end-to-end | `node tests/run_e2e.js` | 134 / 134 |
+| Reporting and query plans | `node tests/run_reports.js` | 46 / 46 |
+| Security and RBAC | `node tests/phase4_security.test.js` | 51 / 51 |
+| REST API | `node tests/run_api.js` | 94 / 94 |
 | Client type-check and production build | `npm run build` (`tsc -b && vite build`) | passes |
 
 Verified figures for October 2026, produced by the running system:

@@ -7,8 +7,8 @@
 | Course | Database Management Systems (Capstone Phase 3) |
 | Engine | SQLite 3.51.3 via Node.js v24.15.0 `node:sqlite` (`DatabaseSync`) |
 | Database | `database/paytrack.sqlite`, built from `schema.sql` → `procedures.sql` → `triggers.sql` → `seed.sql` → `reports.sql` |
-| Suite | `node test/run_reports.js` — 46 / 46 passing |
-| Regression | `node test/run_e2e.js` — 134 / 134 passing (unchanged) |
+| Suite | `node tests/run_reports.js` — 46 / 46 passing |
+| Regression | `node tests/run_e2e.js` — 134 / 134 passing (unchanged) |
 
 Every result table and every `EXPLAIN QUERY PLAN` block in this document was captured by running the SQL against the seeded database; nothing here is illustrative. The numbers were hand-checked against the seed rows before they were trusted (Section 2.3).
 
@@ -316,7 +316,7 @@ This exists purely so the month filter is **indexable** — see Section 4.
 
 ### 4.1 What was measured, and how
 
-The comparison in this section was produced by `node test/run_reports.js`. The suite builds **two** fresh databases in `os.tmpdir()` from the same SQL files:
+The comparison in this section was produced by `node tests/run_reports.js`. The suite builds **two** fresh databases in `os.tmpdir()` from the same SQL files:
 
 - **WITH** — `schema` → `procedures` → `triggers` → `seed` → `reports` (report indexes present).
 - **WITHOUT** — the same files, with the two `CREATE INDEX` statements in `reports.sql` stripped before execution. Every Phase 1 index remains, so the comparison is "report indexes vs no report indexes", not "indexed vs no indexes at all".
@@ -415,7 +415,7 @@ This is exactly the transition the brief asked for. The Phase 1 index `idx_payro
 
 ## 5. How these views are exposed by the API
 
-The Phase 5 server implements the contract in `docs/BUILD_CONVENTIONS.md`. Each endpoint runs exactly one report statement; the response wrapper is `{ "data": … }` (errors: `{ "error": { "code", "message" } }`). All four endpoints below are **staff** (`ADMIN`/`HR`) except the payslip, which is staff **or** the slip's owner — an `EMPLOYEE` asking for another employee's payslip gets `403 FORBIDDEN`.
+The Phase 5 server implements the contract in `docs/build-conventions.md`. Each endpoint runs exactly one report statement; the response wrapper is `{ "data": … }` (errors: `{ "error": { "code", "message" } }`). All four endpoints below are **staff** (`ADMIN`/`HR`) except the payslip, which is staff **or** the slip's owner — an `EMPLOYEE` asking for another employee's payslip gets `403 FORBIDDEN`.
 
 ### `GET /api/attendance/summary?month=YYYY-MM`
 
@@ -447,7 +447,7 @@ The four statements above are the "Q1…Q5" block at the bottom of `database/rep
 
 ## 6. Verification
 
-`node test/run_reports.js` — **46 / 46 passing**. How the expected values were established:
+`node tests/run_reports.js` — **46 / 46 passing**. How the expected values were established:
 
 - **No expected value was copied from the object under test.** Every figure was read off the seed `INSERT` rows first (e.g. "Amit Verma, September: 20 PRESENT, 2 ON_LEAVE inside an APPROVED UNPAID leave, 8 HOLIDAY, 7.5 OT, 2 late") and written into the test; the view then had to produce it.
 - **Cross checks, not just self-checks.** `RPT-021` recomputes day counts with a direct `COUNT(*) … GROUP BY status` on `Attendance` for every employee-month; `RPT-029` requires agreement with the Phase 2 summary view; `RPT-043` requires the late-marks view and the summary view to agree per employee-month; `RPT-054` requires the line items to sum back to gross and net for every slip; `RPT-061` requires the rollup totals to equal the raw sums for all three months.
@@ -464,7 +464,7 @@ The four statements above are the "Q1…Q5" block at the bottom of `database/rep
 ### Reproducing
 
 ```powershell
-node test/run_reports.js
-node test/run_reports.js --verbose
-node test/run_e2e.js
+node tests/run_reports.js
+node tests/run_reports.js --verbose
+node tests/run_e2e.js
 ```

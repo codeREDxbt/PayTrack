@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * Tier 3: Cross-Feature Interactions Test Suite (test/tier3_pairwise.test.js)
+ * Tier 3: Cross-Feature Interactions Test Suite (tests/tier3_pairwise.test.js)
  * ============================================================================
  * Total: 16 Pairwise Integration Test Cases covering state transitions,
  * cross-subsystem interactions, and trigger validations.

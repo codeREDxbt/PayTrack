@@ -35,3 +35,6 @@ database/*.sqlite-journal
 *.njsproj
 *.sln
 *.sw?
+
+# Local tool config (contains a personal API key — never commit)
+mcp_config.json

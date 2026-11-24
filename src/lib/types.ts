@@ -1,7 +1,7 @@
 // ================================
 // PayTrack API Types
 // ================================
-// These mirror the Phase 5 REST contract in docs/API_REFERENCE.md and the
+// These mirror the Phase 5 REST contract in docs/phase-5/api-reference.md and the
 // Phase 1 schema in database/schema.sql. The UI never invents a field the
 // server does not return.
 

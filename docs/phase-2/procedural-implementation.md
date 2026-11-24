@@ -6,7 +6,7 @@
 **Project**: PayTrack — Enterprise Payroll & Attendance Management System  
 **Phase**: Phase 2 — Procedural Implementation & Realistic Seed Dataset  
 **Database Engines Evaluated**: SQLite 3 (node:sqlite v24 Native Runtime), PostgreSQL 14+ (PL/pgSQL), MySQL 8.0+ (DELIMITER Triggers & Procedures)  
-**Verification Suite**: `test/verify_phase2.js` (52/52 Tests Passed)  
+**Verification Suite**: `tests/verify_phase2.js` (52/52 Tests Passed)  
 
 ---
 
@@ -16,7 +16,7 @@ Phase 2 builds directly upon the certified 3NF relational data model established
 1. **Procedural Business Logic**: Mathematical formulas for prorated base salary calculation, overtime compensation, progressive income tax withholding (TDS), unpaid leave deductions, and net salary disbursement.
 2. **Automated Data Integrity Triggers**: Active database triggers that intercept invalid state transitions, abort overlapping approved leave requests, reject future attendance dates, validate work hours, and automatically detect employee tardiness.
 3. **Enterprise Seed Dataset**: A realistic, fully normalized 3-month operational dataset (August 1, 2026 through October 31, 2026) comprising 12 employees across 7 departments, 1,104 daily attendance records, 22 categorized leave applications, and 36 finalized monthly payroll records.
-4. **Automated Test Harness**: A comprehensive verification runner (`test/verify_phase2.js`) that programmatically validates all schema constraints, procedural views, trigger abort behaviors, progressive tax marginal rates, and dataset volumes using Node.js v24 built-in `node:sqlite`.
+4. **Automated Test Harness**: A comprehensive verification runner (`tests/verify_phase2.js`) that programmatically validates all schema constraints, procedural views, trigger abort behaviors, progressive tax marginal rates, and dataset volumes using Node.js v24 built-in `node:sqlite`.
 
 ---
 
@@ -242,7 +242,7 @@ Each month (August, September, October 2026) concludes with an immutable payroll
 
 ## 5. Verification Methodology & Results
 
-The verification runner `test/verify_phase2.js` executes 52 discrete automated test cases against an in-memory SQLite database instance with foreign keys enabled (`PRAGMA foreign_keys = ON`).
+The verification runner `tests/verify_phase2.js` executes 52 discrete automated test cases against an in-memory SQLite database instance with foreign keys enabled (`PRAGMA foreign_keys = ON`).
 
 ### 5.1 Verification Test Groups
 

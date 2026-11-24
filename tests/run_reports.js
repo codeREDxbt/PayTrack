@@ -1,14 +1,14 @@
 /**
  * ============================================================================
- * PayTrack Phase 3 Report Suite Runner (test/run_reports.js)
+ * PayTrack Phase 3 Report Suite Runner (tests/run_reports.js)
  * ============================================================================
  * Usage:
- *   node test/run_reports.js              # Run the report suite
- *   node test/run_reports.js --verbose    # List every test as it passes
- *   node test/run_reports.js --json       # Machine-readable report
+ *   node tests/run_reports.js              # Run the report suite
+ *   node tests/run_reports.js --verbose    # List every test as it passes
+ *   node tests/run_reports.js --json       # Machine-readable report
  *
  * Prints the captured EXPLAIN QUERY PLAN output (with and without the
- * Section 2 report indexes) so docs/QUERY_REPORTS.md can quote real output.
+ * Section 2 report indexes) so docs/phase-3/query-reports.md can quote real output.
  * Exit code 1 if any test fails.
  * ============================================================================
  */

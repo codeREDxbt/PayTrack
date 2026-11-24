@@ -7,7 +7,7 @@
 | Course | Database Management Systems (Capstone Phase 5) |
 | Runtime | Node.js v24 (no framework, no npm runtime dependency; `node:http` + `node:sqlite`) |
 | Entry point | `node server/index.js` — `http://127.0.0.1:4000/api` |
-| Test suite | `node test/run_api.js` — 94 / 94 passing |
+| Test suite | `node tests/run_api.js` — 94 / 94 passing |
 
 The server is a thin HTTP layer over the database built by `schema.sql → procedures.sql →
 triggers.sql → seed.sql → security.sql → reports.sql`. Business rules stay in SQL (triggers, views and
@@ -379,7 +379,7 @@ distinct departments).
 
 ## 9. Verification
 
-`node test/run_api.js` starts a server on an ephemeral port over a fresh in-memory database and drives
+`node tests/run_api.js` starts a server on an ephemeral port over a fresh in-memory database and drives
 every endpoint with native `fetch`, one test per contract statement:
 
 | Group | Cases | Covers |
@@ -392,8 +392,8 @@ every endpoint with native `fetch`, one test per contract statement:
 | T | `T5-T01…T08` | CORS, body cap, malformed JSON, security headers, unknown routes, 401 handling |
 | B | `T5-B01` | idempotent initialisation and the views both suites need |
 
-Measured result: **94 / 94**, exit code 0. Phase 3 (`node test/run_reports.js`) remains 46/46 and the
-end-to-end database suite (`node test/run_e2e.js`) remains 134/134.
+Measured result: **94 / 94**, exit code 0. Phase 3 (`node tests/run_reports.js`) remains 46/46 and the
+end-to-end database suite (`node tests/run_e2e.js`) remains 134/134.
 
 Not verified here: the React frontend is not exercised by this suite, and no load/soak timing is
 claimed. Rate limiting is asserted within one process, which is what a single-instance deployment runs.
